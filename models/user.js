@@ -3,6 +3,8 @@ const utilsHelper = require("../helpers/utils.helper");
 const emailHelper = require("../helpers/email.helper");
 const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
+const jwt = require("jsonwebtoken");
+const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY;
 
 
 // 2.
@@ -13,20 +15,22 @@ const userSchema = Schema(
       type: String, required: true, unique: true,
     },
     password: { type: String, required: true },
-    avatarUrl: {type: String, required: true},
+    avatarUrl: {type: String},
     role: {
       type: String,
       default: 'User',
       enum: ['User', 'Admin', 'Seller', 'Shipper']
     },
     isDeleted: { type: Boolean, default: false, select: false },
-    cart: [{type: Schema.Types.ObjectId,
-      ref: "Product"}]
+    // cart: [{type: Schema.Types.ObjectId,
+    //   ref: "Product"}]
   },
   { timestamps: true },
   {toJSON: {virtuals: true}},
   {toObject: {virtuals: true}},
 );
+
+// cart: [2,3,4,5,5]
 
 userSchema.plugin(require("./plugins/isDeletedFalse"));
 
@@ -39,12 +43,14 @@ userSchema.methods.toJSON = function () {
   return obj;
 };
 
-// userSchema.methods.generateToken = async function () {
-//   const accessToken = await jwt.sign({ _id: this._id }, JWT_SECRET_KEY, {
-//     expiresIn: "1d",
-//   });
-//   return accessToken;
-// };
+userSchema.methods.generateToken = async function () {
+  console.log("gggg",JWT_SECRET_KEY)
+  const accessToken = await jwt.sign({ _id: this._id }, JWT_SECRET_KEY, {
+    expiresIn: "10d",
+  });
+  console.log("inuser", accessToken)
+  return accessToken;
+};
 
 const User = mongoose.models.User || mongoose.model('User', userSchema);
 

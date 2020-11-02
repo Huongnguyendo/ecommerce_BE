@@ -21,7 +21,7 @@ const {
   // when user successfully logined, generate a token to send back to their browser
   // here we create a token for the instance user
     accessToken = await user.generateToken();
-    console.log("res be ne: ", res);
+    console.log("authcontroller ", accessToken);
     return sendResponse(
       res,
       200,

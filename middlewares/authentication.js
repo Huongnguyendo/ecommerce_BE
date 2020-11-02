@@ -4,22 +4,25 @@ const { AppError } = require("../helpers/utils.helper");
 const authMiddleware = {};
 
 console.log(JWT_SECRET_KEY)
-authMiddleware.loginRequired = (req, res, next) => {
+authMiddleware.loginRequired = async (req, res, next) => {
   try {
     const tokenString = req.headers.authorization;
     if (!tokenString)
       return next(new AppError(401, "Login required", "Validation Error"));
     const token = tokenString.replace("Bearer ", "");
     console.log("hehehehe", tokenString)
-    console.log("dsdsd",token)
-
-    jwt.verify(token, JWT_SECRET_KEY, (err, payload) => {
+    console.log("dsdsd",token,"ok")
+    console.log("aaaa", JWT_SECRET_KEY);
+let decode =  await  jwt.verify(token, JWT_SECRET_KEY)
+console.log(decode)
+     jwt.verify(token, JWT_SECRET_KEY, (err, payload) => {
       if (err) {
+        console.log(err);
         if (err.name === "TokenExpiredError") {
           return next(new AppError(401, "Token expired", "Validation Error"));
         } else {
           return next(
-            new AppError(401, "Token is invalid", "Validation Error")
+            new AppError(401, err, "Validation Error")
           );
         }
       }
