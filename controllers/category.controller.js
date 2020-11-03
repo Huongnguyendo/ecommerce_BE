@@ -17,6 +17,19 @@ categoryController.getCategories = catchAsync(async(req, res, next) => {
     }
     
 })
+
+categoryController.getProductsWithCategory = catchAsync(async(req, res, next) => {
+    try {
+        const category = req.body.category;
+        console.log("hoho: ", category);
+        const filterProducts = await Product.find({ category: category }).populate("seller");
+        return sendResponse(res,200,true,filterProducts,null,
+            "Get products in category successful");
+    } catch (err) {
+        return new AppError(404, "Products not found");
+    }
+    
+})
     
 // categoryController.createCategory =  catchAsync(async(req, res, next) =>{
 //         try {

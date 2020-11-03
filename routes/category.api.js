@@ -9,9 +9,12 @@ const categoryController = require("../controllers/category.controller");
 const { body, param } = require("express-validator");
 
 
-router.route('/category')
+router.route('/')
     .get(categoryController.getCategories)
     // .post(authMiddleware, categoryController.createCategory)
+
+router.route('/')
+    .post(categoryController.getProductsWithCategory)
 
 // router.route('/category/:id')
 //     .delete(authMiddleware, categoryController.deleteCategory)
