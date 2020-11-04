@@ -31,6 +31,33 @@ const {
   
     return sendResponse(res, 200, true, { products, totalPages }, null, "");
   });
+
+  productController.getProductsByKeyword = catchAsync(async (req, res, next) => {
+    console.log("hehehehehe");
+    let { page, limit, sortBy, ...filter } = { ...req.query };
+    console.log("query ne: ", query);
+    page = parseInt(page) || 1;
+    limit = parseInt(limit) || 10;
+
+    let keyword = req.body;
+    console.log("keyword ne ne: ", keyword);
+  
+    const totalProducts = await Product.countDocuments({
+      ...filter,
+      isDeleted: false,
+    });
+    const totalPages = Math.ceil(totalProducts / limit);
+    const offset = limit * (page - 1);
+  
+    // console.log({ filter, sortBy });
+    const products = await Product.find(filter)
+      .sort({ ...sortBy, createdAt: -1 })
+      .skip(offset)
+      .limit(limit)
+      .populate("seller");
+  
+    return sendResponse(res, 200, true, { products, totalPages }, null, "");
+  })
   
   productController.getSingleProduct = catchAsync(async (req, res, next) => {
     let product = await (await Product.findById(req.params.id).populate("seller")).populate("user");

@@ -3,7 +3,6 @@ const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY;
 const { AppError } = require("../helpers/utils.helper");
 const authMiddleware = {};
 
-console.log(JWT_SECRET_KEY)
 authMiddleware.loginRequired = async (req, res, next) => {
   try {
     const tokenString = req.headers.authorization;
@@ -12,7 +11,6 @@ authMiddleware.loginRequired = async (req, res, next) => {
     const token = tokenString.replace("Bearer ", "");
     console.log("hehehehe", tokenString)
     console.log("dsdsd",token,"ok")
-    console.log("aaaa", JWT_SECRET_KEY);
 let decode =  await  jwt.verify(token, JWT_SECRET_KEY)
 console.log(decode)
      jwt.verify(token, JWT_SECRET_KEY, (err, payload) => {

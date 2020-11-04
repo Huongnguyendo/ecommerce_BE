@@ -44,7 +44,6 @@ userSchema.methods.toJSON = function () {
 };
 
 userSchema.methods.generateToken = async function () {
-  console.log("gggg",JWT_SECRET_KEY)
   const accessToken = await jwt.sign({ _id: this._id }, JWT_SECRET_KEY, {
     expiresIn: "10d",
   });

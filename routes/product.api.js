@@ -48,6 +48,10 @@ router.post(
   productController.createNewProduct
 );
 
+
+router.route('/keyword')
+    .post(productController.getProductsByKeyword)
+
   
 /**
  * @route PUT api/blogs/:id
