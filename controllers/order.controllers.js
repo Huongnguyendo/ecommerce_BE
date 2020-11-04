@@ -62,7 +62,7 @@ const {
     const { name, description } = req.body;
   
     const product = await Product.findOneAndUpdate(
-      { _id: blogId, seller: seller },
+      { _id: productId, seller: seller },
       { name, description },
       { new: true }
     );

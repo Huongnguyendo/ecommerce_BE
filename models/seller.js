@@ -3,13 +3,13 @@ const Schema = mongoose.Schema;
 
 // Merchant Schema
 const SellerSchema = Schema({
-  name: {
-    type: String,
-  },
-  email: {
-    type: String
-  },
-  avatarUrl: {type: String},
+  // name: {
+  //   type: String,
+  // },
+  // email: {
+  //   type: String
+  // },
+  // avatarUrl: {type: String},
   brand: {
     type: String
   },

@@ -60,7 +60,7 @@ const {
   })
   
   productController.getSingleProduct = catchAsync(async (req, res, next) => {
-    let product = await (await Product.findById(req.params.id).populate("seller")).populate("user");
+    let product = await Product.findById(req.params.id).populate("seller").populate("user");
     if (!product)
       return next(new AppError(404, "Product not found", "Get Single Product Error"));
       product = product.toJSON();
@@ -70,14 +70,19 @@ const {
   
   productController.createNewProduct = catchAsync(async (req, res, next) => {
     const seller = req.userId;
-    const { name, description } = req.body;
-    let { image } = req.body;
+    const { name, brand, description, category, inStockNum, image, price } = req.body;
+    // let { image } = req.body;
   
     const product = await Product.create({
       name,
+      brand,
       description,
+      category,
+      inStockNum,
+      image,
+      price,
       seller,
-      images,
+
     });
   
     return sendResponse(res, 200, true, product, null, "Create new product successful");
@@ -86,11 +91,11 @@ const {
   productController.updateSingleProduct = catchAsync(async (req, res, next) => {
     const seller = req.userId;
     const productId = req.params.id;
-    const { name, description } = req.body;
+    const { name, description, image, brand, price, category, inStockNum } = req.body;
   
     const product = await Product.findOneAndUpdate(
-      { _id: blogId, seller: seller },
-      { name, description },
+      { _id: productId, seller: seller },
+      { name, description, image, brand, price, category, inStockNum },
       { new: true }
     );
     if (!product)

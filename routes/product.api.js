@@ -38,12 +38,12 @@ router.get(
  */
 
 router.post(
-  "/",
+  "/add",
   authMiddleware.loginRequired,
   // uploader.array("images", 2),
   validators.validate([
-    body("title", "Missing title").exists().notEmpty(),
-    body("content", "Missing content").exists().notEmpty(),
+    body("name", "Missing name").exists().notEmpty(),
+    body("description", "Missing description").exists().notEmpty(),
   ]),
   productController.createNewProduct
 );
@@ -64,8 +64,8 @@ router.put(
   authMiddleware.loginRequired,
   validators.validate([
     param("id").exists().isString().custom(validators.checkObjectId),
-    body("title", "Missing title").exists().notEmpty(),
-    body("content", "Missing content").exists().notEmpty(),
+    body("name", "Missing name").exists().notEmpty(),
+    body("description", "Missing description").exists().notEmpty(),
   ]),
   productController.updateSingleProduct
 );

@@ -10,13 +10,13 @@ const productSchema = Schema({
   category: { type: String, required: true },
   inStockNum: { type: Number, default: 0, required: true },
   description: { type: String, required: true },
-  rating: { type: Number, default: 0, required: true },
+  rating: { type: Number, default: 0, required: false },
   reviewCount: { type: Number, default: 0 },
   isDeleted: { type: Boolean, default: false, select: false },
   seller: {
     type: Schema.Types.ObjectId,
     required: true,
-    ref: "Seller",
+    ref: "User",
   },
 });
 

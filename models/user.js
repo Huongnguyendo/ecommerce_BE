@@ -21,6 +21,7 @@ const userSchema = Schema(
       default: 'User',
       enum: ['User', 'Admin', 'Seller', 'Shipper']
     },
+    seller: { type: Schema.ObjectId, ref: "Seller" },
     isDeleted: { type: Boolean, default: false, select: false },
     // cart: [{type: Schema.Types.ObjectId,
     //   ref: "Product"}]
