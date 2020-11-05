@@ -22,6 +22,8 @@ categoryController.getProductsWithCategory = catchAsync(async(req, res, next) =>
     try {
         const category = req.body.category;
         console.log("hoho: ", category);
+        
+        
         let filterProducts;
         if (!category || category === "All") {
             filterProducts = await Product.find().populate("seller");

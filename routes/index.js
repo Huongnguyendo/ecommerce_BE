@@ -14,6 +14,10 @@ router.use("/auth", authApi);
 const productApi = require("./product.api");
 router.use("/products", productApi);
 
+// productsellerApi
+const productSellerApi = require("./product.seller.api");
+router.use("/seller/products", productSellerApi);
+
 // cartApi
 const cartApi = require("./cart.api");
 router.use("/cart", cartApi);

@@ -30,11 +30,18 @@ router.get(
   productController.getSingleProduct
 );
 
+router.route('/')
+    .post(
+    //   validators.validate([
+    //   body("keyword", "Missing keyword").exists().notEmpty(),
+    // ]),
+      productController.getProductsByKeyword)
 
+  
 /**
- * @route POST api/blogs
- * @description Create a new blog
- * @access Login required
+ * @route POST api/products
+ * @description Create a new product
+ * @access Seller Login required
  */
 
 router.post(
@@ -49,24 +56,35 @@ router.post(
 );
 
 
-router.route('/keyword')
-    .post(productController.getProductsByKeyword)
 
-  
 /**
  * @route PUT api/blogs/:id
  * @description Update a blog
  * @access Login required
  */
 
+router.get(
+  "/edit/:id",
+  authMiddleware.loginRequired,
+  validators.validate([
+    param("id").exists().isString().custom(validators.checkObjectId),
+    
+  ]),
+  
+  productController.getSingleProductForSeller
+);
+
+
+
 router.put(
-  "/:id",
+  "/edit/:id",
   authMiddleware.loginRequired,
   validators.validate([
     param("id").exists().isString().custom(validators.checkObjectId),
     body("name", "Missing name").exists().notEmpty(),
     body("description", "Missing description").exists().notEmpty(),
   ]),
+  
   productController.updateSingleProduct
 );
 

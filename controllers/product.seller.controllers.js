@@ -7,75 +7,10 @@ const {
   const Review = require("../models/review");
   const User = require("../models/user");
   const Seller = require("../models/seller");
-  const productController = {};
+  const productSellerController = {};
   
-  productController.getProducts = catchAsync(async (req, res, next) => {
-    let { page, limit, sortBy, ...filter } = { ...req.query };
-    page = parseInt(page) || 1;
-    limit = parseInt(limit) || 10;
   
-    const totalProducts = await Product.countDocuments({
-      ...filter,
-      isDeleted: false,
-    });
-    const totalPages = Math.ceil(totalProducts / limit);
-    const offset = limit * (page - 1);
-  
-    // console.log({ filter, sortBy });
-    const products = await Product.find({filter,isDeleted:false})
-      .sort({ ...sortBy, createdAt: -1 })
-      .skip(offset)
-      .limit(limit)
-      .populate("seller")
-      ;
-
-  
-    return sendResponse(res, 200, true, { products, totalPages }, null, "");
-  });
-
-  productController.getProductsByKeyword = catchAsync(async (req, res, next) => {
-    console.log("hehehehehe");
-    let { page, limit, sortBy,  ...filter } = { ...req.query };
-    let { keyword } = req.body;
-    keyword = keyword.toLowerCase();
-
-    // page = parseInt(page) || 1;
-    // limit = parseInt(limit) || 10;
-
-  
-    // const totalProducts = await Product.countDocuments({
-    //   ...filter,
-    //   isDeleted: false,
-    // });
-    // const totalPages = Math.ceil(totalProducts / limit);
-    // const offset = limit * (page - 1);
-  
-    // console.log({ filter, sortBy });
-    const products = await Product.find({
-      $or: [
-        {"name" : {$regex : `.*${keyword}.*`}},
-        {"category" : {$regex : `.*${keyword}.*`}}
-      ]
-    })
-    .sort({ ...sortBy, createdAt: -1 })
-    // .skip(offset)
-    // .limit(limit)
-    .populate("seller");
-
-  
-    return sendResponse(res, 200, true, { products }, null, "");
-  })
-  
-  productController.getSingleProduct = catchAsync(async (req, res, next) => {
-    let product = await Product.findById(req.params.id).populate("seller").populate("user");
-    if (!product)
-      return next(new AppError(404, "Product not found", "Get Single Product Error"));
-      product = product.toJSON();
-      product.reviews = await Review.find({ product: product._id }).populate("seller").populate("user");
-    return sendResponse(res, 200, true, product, null, null);
-  });
-
-  productController.getSingleProductForSeller = catchAsync(async (req, res, next) => {
+  productSellerController.getSingleProductForSeller = catchAsync(async (req, res, next) => {
     let product = await Product.findById(req.params.id).populate("seller").populate("user");
     let user = req.userId;
     console.log("here", user, product?.seller?._id )
@@ -95,8 +30,24 @@ const {
   //get product by id for seller
   // check req.userId (trong middleware authentication) co = id cua owner cua product ko
 
+productSellerController.getAllProductsForSeller = catchAsync(async (req, res, next) => {
+    // let product = await Product.findById(req.params.id).populate("seller").populate("user");
+    let user = req.userId;
+
+    const products = await Product.find({seller: user})
+
+    console.log("day ne: ", products )
+
+
+    if (!products || !products.length)
+      return next(new AppError(404, "Product not found", "Get Product Error"));
+    //   products = products.toJSON();
+    //   product.reviews = await Review.find({ product: product._id }).populate("seller").populate("user");
+      console.log("product tra ve ne: ", products);
+    return sendResponse(res, 200, true, {products}, null, null);
+})
   
-  productController.createNewProduct = catchAsync(async (req, res, next) => {
+  productSellerController.createNewProduct = catchAsync(async (req, res, next) => {
     const seller = req.userId;
     const { name, brand, description, category, inStockNum, image, price } = req.body;
   
@@ -115,7 +66,7 @@ const {
     return sendResponse(res, 200, true, product, null, "Create new product successful");
   });
   
-  productController.updateSingleProduct = catchAsync(async (req, res, next) => {
+  productSellerController.updateSingleProduct = catchAsync(async (req, res, next) => {
     const seller = req.userId;
     const productId = req.params.id;
     const { name, description, image, brand, price, category, inStockNum } = req.body;
@@ -138,7 +89,7 @@ const {
     return sendResponse(res, 200, true, product, null, "Update Product successful");
   });
   
-  productController.deleteSingleProduct = catchAsync(async (req, res, next) => {
+  productSellerController.deleteSingleProduct = catchAsync(async (req, res, next) => {
     const seller = req.userId;
     const productId = req.params.id;
     
@@ -164,4 +115,4 @@ const {
     return sendResponse(res, 200, true, null, null, "Delete Product successful");
   });
   
-  module.exports = productController;
+  module.exports = productSellerController;

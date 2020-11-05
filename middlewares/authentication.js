@@ -11,8 +11,8 @@ authMiddleware.loginRequired = async (req, res, next) => {
     const token = tokenString.replace("Bearer ", "");
     console.log("hehehehe", tokenString)
     console.log("dsdsd",token,"ok")
-let decode =  await  jwt.verify(token, JWT_SECRET_KEY)
-console.log(decode)
+    let decode =  await  jwt.verify(token, JWT_SECRET_KEY)
+    console.log(decode)
      jwt.verify(token, JWT_SECRET_KEY, (err, payload) => {
       if (err) {
         console.log(err);

@@ -4,6 +4,7 @@ const {
     sendResponse,
   } = require("../helpers/utils.helper");
 const User = require("../models/user");
+const Seller = require("../models/seller");
 const Cart = require('../models/cart');
 const Product = require("../models/product")
 const cartController = {};
@@ -86,6 +87,54 @@ cartController.removeItemFromCart = catchAsync(async (req, res) => {
     return sendResponse(res, 200, true, cart, null, "");
 
 });
+
+cartController.checkoutCart = catchAsync(async (req, res) =>{
+    let cart;
+    cart = await Cart.findOne({ user: req.userId }).populate({path: "cartItems.product"});
+    // console.log("selected cart ne: ", cart);
+
+    // sellingHistory: [
+    //     {
+    //         product: {type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true},
+    //         buyer: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    //         quantity: { type: Number },
+    //     }
+    //   ],
+
+    for(let item of cart.cartItems) {
+        console.log("wowwow ", item.product.name);
+        console.log("item.product.seller: ", item.product.seller);
+        let seller = await User.findById( item.product.seller)
+        console.log("seller ne: ", seller);
+        console.log(item._id,"ai di")
+       let index =  seller.sellingHistory.findIndex(pd => { 
+        console.log("pd", pd.product)
+        console.log("item", item.product._id)
+        return pd.product.toString() == item.product._id.toString()})
+        if (index < 0) {
+           console.log("khong co")
+            seller.sellingHistory.push({product: item.product._id, history: []})
+            index = seller.sellingHistory.length - 1
+        }
+
+        console.log("hihi", index,"index")
+        seller.sellingHistory[index].history.push({
+            buyer: await User.findById(req.userId),
+            quantity: item.quantity,
+            price: item.product.price,
+            purchaseDate: Date.now()
+        })
+        seller
+        console.log("seller 2222", seller)
+        await seller.save()
+    }
+
+    
+
+    // console.log("post selected cart: ", cart);
+
+    // return sendResponse(res, 200, true, cart, null, "");
+})
 
 
 module.exports = cartController;
