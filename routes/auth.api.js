@@ -4,7 +4,9 @@ const router = express.Router();
 const validators = require("../middlewares/validators");
 const { body } = require("express-validator");
 const authController = require("../controllers/auth.controller");
+const userController = require("../controllers/user.controller");
 const passport = require("passport");
+const authMiddleware = require("../middlewares/authentication");
 require("../helpers/passport.helper")
 
 /**
@@ -18,7 +20,11 @@ router.post(
       body("email", "Invalid email").exists().isEmail(),
       body("password", "Invalid password").exists().notEmpty(),
     ]),
-    authController.loginWithEmail
+    
+    authController.loginWithEmail,
+    // authMiddleware.loginRequired,
+    // authMiddleware.isAdmin
+    
   );
 
 /**
@@ -43,5 +49,39 @@ router.post(
   passport.authenticate("google-token"),
   authController.loginWithFacebookOrGoogle
 );
+
+
+/* ADMIN */
+// get admin dashboard
+
+// see all users
+router.get(
+  "/admin/allusers",
+  // validators.validate([
+  //   body("email", "Invalid email").exists().isEmail(),
+  //   body("password", "Invalid password").exists().notEmpty(),
+  // ]),
+  
+  authMiddleware.loginRequired,
+  authMiddleware.isAdmin,
+  userController.getUsers
+);
+
+// delete a user
+router.delete(
+  "/admin/user/:id",
+  // validators.validate([
+  //   body("email", "Invalid email").exists().isEmail(),
+  //   body("password", "Invalid password").exists().notEmpty(),
+  // ]),
+  
+  authMiddleware.loginRequired,
+  authMiddleware.isAdmin,
+  userController.deleteUser
+);
+
+// delete a product
+
+
 
 module.exports = router;

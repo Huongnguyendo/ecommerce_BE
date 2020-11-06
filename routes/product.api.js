@@ -37,7 +37,9 @@ router.route('/')
     // ]),
       productController.getProductsByKeyword)
 
-  
+router.route('/')
+      .post(productController.getProductsWithCategory)
+
 /**
  * @route POST api/products
  * @description Create a new product

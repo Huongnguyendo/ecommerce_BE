@@ -9,7 +9,8 @@ const cartSchema = Schema({
             quantity: { type: Number, default: 1 },
             // price: { type: Number, required: true }
         }
-    ]
+    ],
+    revenue: {type: Number},
 }, { timestamps: true });
 
 const Cart = mongoose.model("Cart", cartSchema);

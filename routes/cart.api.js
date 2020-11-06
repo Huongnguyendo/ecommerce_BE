@@ -5,6 +5,7 @@ const router = express.Router();
 
 router.get('/', 
 authMiddleware.loginRequired, 
+// authMiddleware.isAdmin,
 getCart);
 
 router.post('/add', 

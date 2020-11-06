@@ -39,22 +39,11 @@ const {
     let { keyword } = req.body;
     keyword = keyword.toLowerCase();
 
-    // page = parseInt(page) || 1;
-    // limit = parseInt(limit) || 10;
-
-  
-    // const totalProducts = await Product.countDocuments({
-    //   ...filter,
-    //   isDeleted: false,
-    // });
-    // const totalPages = Math.ceil(totalProducts / limit);
-    // const offset = limit * (page - 1);
-  
-    // console.log({ filter, sortBy });
+    
     const products = await Product.find({
       $or: [
-        {"name" : {$regex : `.*${keyword}.*`}},
-        {"category" : {$regex : `.*${keyword}.*`}}
+        {"name" : {$regex : `.*${keyword}.*`,  $options: "i"}},
+        {"category" : {$regex : `.*${keyword}.*`, $options: "i"}}
       ]
     })
     .sort({ ...sortBy, createdAt: -1 })
@@ -65,6 +54,27 @@ const {
   
     return sendResponse(res, 200, true, { products }, null, "");
   })
+
+  productController.getProductsWithCategory = catchAsync(async(req, res, next) => {
+    try {
+      
+        const category = req.body.category;
+        console.log("product hoho: ", category);
+        
+        let filterProducts;
+        if (!category || category === "All") {
+            filterProducts = await Product.find().populate("seller");
+        } else {
+            filterProducts = await Product.find({ category: category }).populate("seller");
+        }
+        return sendResponse(res,200,true,filterProducts,null,
+        "Get products in category successful");
+    } catch (err) {
+        return new AppError(404, "Products not found");
+    }
+    
+})
+ 
   
   productController.getSingleProduct = catchAsync(async (req, res, next) => {
     let product = await Product.findById(req.params.id).populate("seller").populate("user");
@@ -88,7 +98,7 @@ const {
       return next(new AppError(404, "Product not found", "Get Single Product Error"));
       product = product.toJSON();
       product.reviews = await Review.find({ product: product._id }).populate("seller").populate("user");
-      console.log("product tra ve ne: ", product);
+      // console.log("product tra ve ne: ", product);
     return sendResponse(res, 200, true, product, null, null);
   });
 
@@ -98,6 +108,7 @@ const {
   
   productController.createNewProduct = catchAsync(async (req, res, next) => {
     const seller = req.userId;
+    console.log("seller ne: ", req.userId);
     const { name, brand, description, category, inStockNum, image, price } = req.body;
   
     const product = await Product.create({

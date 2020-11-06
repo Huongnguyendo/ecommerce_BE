@@ -71,30 +71,39 @@ userController.getUsers = catchAsync(async (req, res, next) => {
     .skip(offset)
     .limit(limit);
 
-  const promises = users.map(async (user) => {
-    let temp = user.toJSON();
-    temp.friendship = await Friendship.findOne(
-      {
-        $or: [
-          { from: currentUserId, to: user._id },
-          { from: user._id, to: currentUserId },
-        ],
-      },
-      "-_id status updatedAt"
-    );
-    return temp;
-  });
-  const usersWithFriendship = await Promise.all(promises);
-
   return sendResponse(
     res,
     200,
     true,
-    { users: usersWithFriendship, totalPages },
+    { users: users, totalPages },
     null,
     ""
   );
 });
+
+
+userController.deleteUser = catchAsync(async (req, res, next) => {
+  const targetUserId = req.params.id;
+  console.log("targetUserId", targetUserId);
+
+  let user = await User.findOneAndUpdate({ _id: targetUserId},
+    { isDeleted: true },
+    // { new: true }
+    )
+
+    if (!user)
+    return next(
+      new AppError(
+        400,
+        "User not found or Action not authorized",
+        "Delete User Error"
+      )
+    );
+
+  return sendResponse(res, 200, true, null, null, "Delete User successful");
+});
+
+
 
 userController.getCurrentUser = catchAsync(async (req, res, next) => {
   const userId = req.userId;

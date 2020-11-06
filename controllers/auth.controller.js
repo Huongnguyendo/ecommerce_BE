@@ -22,11 +22,16 @@ const {
   // here we create a token for the instance user
     accessToken = await user.generateToken();
     console.log("authcontroller ", accessToken);
+  
+    // newly added
+    next();
+
+    console.log("user._id ", user._id);
+    // req.userId = user._id;
     return sendResponse(
       res,
       200,
       true,
-      // cuz we need to send back the token to the browser
       { user, accessToken },
       null,
       "Login successful"

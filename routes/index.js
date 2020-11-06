@@ -6,6 +6,7 @@ const router = express.Router();
 const userApi = require("./user.api");
 router.use("/users", userApi);
 
+
 // authApi
 const authApi = require("./auth.api");
 router.use("/auth", authApi);

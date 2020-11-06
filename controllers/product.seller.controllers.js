@@ -43,14 +43,14 @@ productSellerController.getAllProductsForSeller = catchAsync(async (req, res, ne
       return next(new AppError(404, "Product not found", "Get Product Error"));
     //   products = products.toJSON();
     //   product.reviews = await Review.find({ product: product._id }).populate("seller").populate("user");
-      console.log("product tra ve ne: ", products);
+      // console.log("product tra ve ne: ", products);
     return sendResponse(res, 200, true, {products}, null, null);
 })
   
   productSellerController.createNewProduct = catchAsync(async (req, res, next) => {
     const seller = req.userId;
     const { name, brand, description, category, inStockNum, image, price } = req.body;
-  
+  console.log(seller)
     const product = await Product.create({
       name,
       brand,
