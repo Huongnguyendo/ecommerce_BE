@@ -93,13 +93,6 @@ cartController.checkoutCart = catchAsync(async (req, res) =>{
     cart = await Cart.findOne({ user: req.userId }).populate({path: "cartItems.product"});
     // console.log("selected cart ne: ", cart);
 
-    // sellingHistory: [
-    //     {
-    //         product: {type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true},
-    //         buyer: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    //         quantity: { type: Number },
-    //     }
-    //   ],
 
     for(let item of cart.cartItems) {
         console.log("wowwow ", item.product.name);
@@ -107,6 +100,7 @@ cartController.checkoutCart = catchAsync(async (req, res) =>{
         let seller = await User.findById( item.product.seller)
         console.log("seller ne: ", seller);
         console.log(item._id,"ai di")
+
        let index =  seller.sellingHistory.findIndex(pd => { 
         console.log("pd", pd.product)
         console.log("item", item.product._id)

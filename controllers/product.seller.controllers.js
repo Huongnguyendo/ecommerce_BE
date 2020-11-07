@@ -15,7 +15,6 @@ const {
     let user = req.userId;
     console.log("here", user, product?.seller?._id )
     if(user != product?.seller?._id) {
-      // return next(new AppError(401, "Unauthori÷zed action", "Auth Error"));
       return sendResponse(res, 403, false, {error: "Unauthorized action"}, null, null);
     }
 
@@ -37,7 +36,6 @@ productSellerController.getAllProductsForSeller = catchAsync(async (req, res, ne
     const products = await Product.find({seller: user})
 
     console.log("day ne: ", products )
-
 
     if (!products || !products.length)
       return next(new AppError(404, "Product not found", "Get Product Error"));
