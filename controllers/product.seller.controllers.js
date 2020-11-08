@@ -45,6 +45,57 @@ productSellerController.getAllProductsForSeller = catchAsync(async (req, res, ne
     return sendResponse(res, 200, true, {products}, null, null);
 })
   
+productSellerController.getHistoryForSeller = catchAsync(async (req, res, next) => {
+  // let product = await Product.findById(req.params.id).populate("seller").populate("user");
+  let userId = req.userId;
+
+  let user = await User.findById(userId);
+  let sellingHistory =  await user.sellingHistory;
+  // let history = await sellingHistory[0].history;
+  // console.log("history ne:", history);
+  let products = [];
+  let historyToRender = [];
+
+  for (let i = 0; i < sellingHistory.length; i++) {
+    let item = sellingHistory[i];
+    let historyArray = item.history;
+    console.log("item ne: ", item);
+    let productID =  item?.product;
+    let product =  await Product.findById(productID);
+    products.push(product);
+    console.log("productID day ne: ", product )
+    // buyers of that one product
+    let buyers = [];
+
+    for (let j=0; j< historyArray.length; j++) {
+      let historyItem = historyArray[j];
+      let buyer = await User.findById(historyItem.buyer);
+      console.log("buyer ne: ", buyer);
+      console.log("quantity: ", historyItem.quantity);
+      buyers.push(buyer);
+      // buyers.push({buyer, quantity})
+    }
+
+    historyToRender.push({product, buyers})
+
+    
+    // console.log("historyArray day ne: ", historyArray);
+  }
+
+  // for (let i = 0; i < history.length; i++) {
+  //   let item = history[i];
+  //   console.log("item history ne: ", item);
+  //   let buyerID =  item?.buyer;
+  //   let buyer =  await User.findById(buyerID);
+  //   console.log("buyer day ne: ", buyer )
+  // }
+  
+
+  console.log("historyToRender ne: ", historyToRender);
+  
+  return sendResponse(res, 200, true, {historyToRender}, null, null);
+})
+
   productSellerController.createNewProduct = catchAsync(async (req, res, next) => {
     const seller = req.userId;
     const { name, brand, description, category, inStockNum, image, price } = req.body;

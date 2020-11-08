@@ -24,5 +24,15 @@ router.get(
     productSellerController.getAllProductsForSeller
   );
 
+router.get(
+    "/history",
+    authMiddleware.loginRequired,
+    // validators.validate([
+    //   param("id").exists().isString().custom(validators.checkObjectId),
+      
+    // ]),
+    productSellerController.getHistoryForSeller
+  );
+
 // 4. export
 module.exports = router;
