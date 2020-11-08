@@ -26,10 +26,8 @@ const {
       .sort({ ...sortBy, createdAt: -1 })
       .skip(offset)
       .limit(limit)
-      .populate("seller")
-      ;
+      .populate("seller");
 
-  
     return sendResponse(res, 200, true, { products, totalPages }, null, "");
   });
 

@@ -64,6 +64,8 @@ userController.getUsers = catchAsync(async (req, res, next) => {
     isDeleted: false,
   });
   const totalPages = Math.ceil(totalUsers / limit);
+  console.log("totalPages ne", totalPages);
+
   const offset = limit * (page - 1);
 
   let users = await User.find(filter)

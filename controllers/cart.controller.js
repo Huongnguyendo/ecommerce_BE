@@ -101,10 +101,11 @@ cartController.checkoutCart = catchAsync(async (req, res) =>{
         console.log("seller ne: ", seller);
         console.log(item._id,"ai di")
 
-       let index =  seller.sellingHistory.findIndex(pd => { 
+       let index =  await seller.sellingHistory.findIndex(pd => { 
         console.log("pd", pd.product)
         console.log("item", item.product._id)
         return pd.product.toString() == item.product._id.toString()})
+
         if (index < 0) {
            console.log("khong co")
             seller.sellingHistory.push({product: item.product._id, history: []})
