@@ -21,7 +21,10 @@ categoryController.getCategories = catchAsync(async(req, res, next) => {
 categoryController.getProductsWithCategory = catchAsync(async(req, res, next) => {
     try {
         const category = req.body.category;
-        console.log("hoho: ", category);
+        console.log("category: ", category);
+
+        page = parseInt(page) || 1;
+        limit = parseInt(limit) || 10;
         
         
         let filterProducts;
@@ -30,7 +33,17 @@ categoryController.getProductsWithCategory = catchAsync(async(req, res, next) =>
         } else {
             filterProducts = await Product.find({ category: category }).populate("seller");
         }
-        return sendResponse(res,200,true,filterProducts,null,
+
+        const totalPages = Math.ceil(filterProducts / limit);
+        const offset = limit * (page - 1);
+
+        const products = await filterProducts
+        .sort({ ...sortBy, createdAt: -1 })
+        .skip(offset)
+        .limit(limit)
+        // .populate("seller");
+
+        return sendResponse(res,200,true,{products, totalPages},null,
         "Get products in category successful");
     } catch (err) {
         return new AppError(404, "Products not found");

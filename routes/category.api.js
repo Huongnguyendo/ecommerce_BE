@@ -14,7 +14,7 @@ router.route('/')
     // .post(authMiddleware, categoryController.createCategory)
 
 router.route('/')
-    .post(categoryController.getProductsWithCategory)
+    .post(productController.getProducts)
 
 // router.route('/category/:id')
 //     .delete(authMiddleware, categoryController.deleteCategory)

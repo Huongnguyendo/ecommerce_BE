@@ -21,13 +21,13 @@ const {
     const totalPages = Math.ceil(totalProducts / limit);
     const offset = limit * (page - 1);
   
-    // console.log({ filter, sortBy });
-    const products = await Product.find({filter,isDeleted:false})
+    console.log("hihihihih",totalPages);
+    const products = await Product.find({...filter,isDeleted:false})
       .sort({ ...sortBy, createdAt: -1 })
       .skip(offset)
       .limit(limit)
       .populate("seller");
-
+    // console.log(products)
     return sendResponse(res, 200, true, { products, totalPages }, null, "");
   });
 
