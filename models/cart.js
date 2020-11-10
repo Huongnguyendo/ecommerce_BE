@@ -11,6 +11,7 @@ const cartSchema = Schema({
         }
     ],
     revenue: {type: Number},
+    isCheckedout: { type: Boolean, default: false },
 }, { timestamps: true });
 
 const Cart = mongoose.model("Cart", cartSchema);

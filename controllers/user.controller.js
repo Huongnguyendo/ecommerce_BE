@@ -4,6 +4,7 @@ const {
     sendResponse,
   } = require("../helpers/utils.helper");
   const User = require("../models/User");
+  const Cart = require('../models/cart');
   const bcrypt = require("bcryptjs");
   const userController = {};
   
@@ -32,6 +33,7 @@ const {
 userController.updateProfile = catchAsync(async (req, res, next) => {
   const userId = req.userId;
   const allows = ["name", "password", "avatarUrl"];
+  console.log("avatar: ", req.body);
   const user = await User.findById(userId);
   if (!user) {
     return next(new AppError(404, "Account not found", "Update Profile Error"));
@@ -122,6 +124,17 @@ userController.getCurrentUser = catchAsync(async (req, res, next) => {
   );
 });
   
+userController.getBuyingHistory = catchAsync(async (req, res, next) => {
+    // let product = await Product.findById(req.params.id).populate("seller").populate("user");
+    let userId = req.userId;
+
+    let carts = await Cart.find({ user: userId, isCheckedout: true}).populate({path : "cartItems.product"})
+    
+  console.log("huefhiuahfuha");
+    console.log("userHistory ne: ", carts);
+    
+    return sendResponse(res, 200, true, carts, null, null);
+})
 
 
 userController.verifyEmail = catchAsync(async (req, res, next) => {

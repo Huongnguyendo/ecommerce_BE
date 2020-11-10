@@ -57,7 +57,7 @@ const {
     try {
       
         const category = req.body.category;
-        console.log("product hoho: ", category);
+        console.log("category hoho: ", category);
         
         let filterProducts;
         if (!category || category === "All") {

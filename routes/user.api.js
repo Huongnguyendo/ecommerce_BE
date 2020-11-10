@@ -25,6 +25,12 @@ router.post(
  * @access Login required
  */
 
+ /* get history */
+router.get('/history', 
+authMiddleware.loginRequired, 
+userController.getBuyingHistory);
+
+
 router.put("/", authMiddleware.loginRequired, userController.updateProfile);
 
 /**
@@ -34,6 +40,8 @@ router.put("/", authMiddleware.loginRequired, userController.updateProfile);
  */
 
 router.get("/me", authMiddleware.loginRequired, userController.getCurrentUser);
+
+
 
 /**
  * @route GET api/users?page=1&limit=10

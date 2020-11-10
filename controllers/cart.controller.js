@@ -11,7 +11,7 @@ const cartController = {};
 
 cartController.getCart = catchAsync(async (req, res, next) => {
     let cart;
-    cart = await Cart.findOne({ user: req.userId }).populate({path: "cartItems.product"})
+    cart = await Cart.findOne({ user: req.userId, isCheckedout: false }).populate({path: "cartItems.product"})
     return sendResponse(res, 200, true, cart, null, "");
 })
 
@@ -25,11 +25,12 @@ cartController.addItemToCart = catchAsync(async (req, res) => {
     // console.log("cartItem: ", cartItem);
     
     let cart;
-    cart = await Cart.findOne({ user: req.userId });
+    cart = await Cart.findOne({ user: req.userId, isCheckedout: false });
     if (!cart) {
         cart = await Cart.create({
             user: req.userId,
             cartItems: [],
+            isCheckedout: false,
         })
     }
     
@@ -50,7 +51,7 @@ cartController.decreaseQualityFromCart = catchAsync(async (req, res) => {
     // find user
     console.log("req.userId: ", req.userId)
     const { product, quantity } = req.body;
-    let cart = await Cart.findOne({ user: req.userId });
+    let cart = await Cart.findOne({ user: req.userId, isCheckedout: false });
     
     console.log("cart: ", cart);
     let itemIndex = cart.cartItems.findIndex(item => item && item.product == product);
@@ -72,7 +73,7 @@ cartController.removeItemFromCart = catchAsync(async (req, res) => {
     console.log("req.userId: ", req.userId)
     const { product } = req.body;
     console.log("product ne: ", product)
-    let cart =  await Cart.findOne({ user: req.userId }).populate({path : "cartItems.product"})
+    let cart =  await Cart.findOne({ user: req.userId, isCheckedout: false }).populate({path : "cartItems.product"})
     
     console.log("cart: ", cart);
 
@@ -90,7 +91,8 @@ cartController.removeItemFromCart = catchAsync(async (req, res) => {
 
 cartController.checkoutCart = catchAsync(async (req, res) =>{
     let cart;
-    cart = await Cart.findOne({ user: req.userId }).populate({path: "cartItems.product"});
+    console.log("user id ban dau: ", req.userId)
+    cart = await Cart.findOne({ user: req.userId, isCheckedout: false }).populate({path: "cartItems.product"});
     // console.log("selected cart ne: ", cart);
 
 
@@ -98,6 +100,7 @@ cartController.checkoutCart = catchAsync(async (req, res) =>{
         console.log("wowwow ", item.product.name);
         console.log("item.product.seller: ", item.product.seller);
         let seller = await User.findById( item.product.seller)
+        if (!seller) continue;
         console.log("seller ne: ", seller);
         console.log(item._id,"ai di")
 
@@ -114,21 +117,22 @@ cartController.checkoutCart = catchAsync(async (req, res) =>{
 
         console.log("hihi", index,"index")
         seller.sellingHistory[index].history.push({
-            buyer: await User.findById(req.userId),
+            buyer: req.userId,
             quantity: item.quantity,
             price: item.product.price,
             purchaseDate: Date.now()
         })
-        seller
+        console.log(req.userId)
         console.log("seller 2222", seller)
         await seller.save()
     }
 
-    
+    cart.isCheckedout = true;
+    cart.save();
 
     // console.log("post selected cart: ", cart);
 
-    // return sendResponse(res, 200, true, cart, null, "");
+    return sendResponse(res, 200, true, cart, null, "");
 })
 
 
