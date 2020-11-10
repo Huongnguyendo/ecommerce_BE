@@ -14,11 +14,13 @@ const {
     const productId = req.params.id;
     const { content } = req.body;
 
+    console.log("content ", content);
+
     // newly added
     let user = await User.findById(userId);
-    if(!user.emailVerified) {
-      return new AppError(400, "User need to verify email first!");
-    }
+    // if(!user.emailVerified) {
+    //   return new AppError(400, "User need to verify email first!");
+    // }
   
     const product = Product.findById(productId);
     if (!product)

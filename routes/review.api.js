@@ -23,7 +23,7 @@ router.get(
  * @access Login required
  */
 router.post(
-    "/blogs/:id",
+    "/products/:id",
     authMiddleware.loginRequired,
     validators.validate([
       param("id").exists().isString().custom(validators.checkObjectId),
