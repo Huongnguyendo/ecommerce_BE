@@ -10,9 +10,11 @@ const {
   const productController = {};
   
   productController.getProducts = catchAsync(async (req, res, next) => {
+
     let { page, limit, sortBy, ...filter } = { ...req.query };
     page = parseInt(page) || 1;
     limit = parseInt(limit) || 10;
+
   
     const totalProducts = await Product.countDocuments({
       ...filter,
@@ -30,6 +32,31 @@ const {
     // console.log(products)
     return sendResponse(res, 200, true, { products, totalPages }, null, "");
   });
+
+
+  // productController.getProducts = catchAsync(async (req, res, next) => {
+  //   let { page, limit, sortBy, ...filter } = { ...req.query };
+  //   page = parseInt(page) || 1;
+  //   limit = parseInt(limit) || 10;
+  
+  //   const totalProducts = await Product.countDocuments({
+  //     ...filter,
+  //     isDeleted: false,
+  //   });
+  //   const totalPages = Math.ceil(totalProducts / limit);
+  //   const offset = limit * (page - 1);
+  
+  //   console.log("hihihihih",totalPages);
+  //   const products = await Product.find({...filter,isDeleted:false})
+  //     .sort({ ...sortBy, createdAt: -1 })
+  //     .skip(offset)
+  //     .limit(limit)
+  //     .populate("seller");
+  //   // console.log(products)
+  //   return sendResponse(res, 200, true, { products, totalPages }, null, "");
+  // });
+
+
 
   productController.getProductsByKeyword = catchAsync(async (req, res, next) => {
     console.log("hehehehehe");

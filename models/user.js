@@ -27,6 +27,7 @@ const userSchema = Schema(
         product: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
         history: [
           {
+            // orderID: {type: mongoose.Schema.Types.ObjectId, ref: 'Cart'},
             buyer: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
             quantity:             { type: Number },
             price: Number, 

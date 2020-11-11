@@ -51,7 +51,7 @@ productSellerController.getHistoryForSeller = catchAsync(async (req, res, next) 
                 console.log(userId)
   let user = await User.findById(userId).populate({path: "sellingHistory.product"}).populate({path: "sellingHistory.history.buyer"});
   // let sellingHistory =  await user.sellingHistory;
-  // // let history = await sellingHistory[0].history;
+  // // let history = await sellingHistory[0].histtory;
   // // console.log("history ne:", history);
   // let products = [];
   // let historyToRender = [];
