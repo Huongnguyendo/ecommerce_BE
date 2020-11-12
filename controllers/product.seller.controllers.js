@@ -33,11 +33,11 @@ productSellerController.getAllProductsForSeller = catchAsync(async (req, res, ne
     // let product = await Product.findById(req.params.id).populate("seller").populate("user");
     let user = req.userId;
 
-    const products = await Product.find({seller: user})
+    const products = await Product.find({seller: user, isDeleted:false})
 
     console.log("day ne: ", products )
 
-    if (!products || !products.length)
+    if (!products)
       return next(new AppError(404, "Product not found", "Get Product Error"));
     //   products = products.toJSON();
     //   product.reviews = await Review.find({ product: product._id }).populate("seller").populate("user");
@@ -83,7 +83,7 @@ productSellerController.getHistoryForSeller = catchAsync(async (req, res, next) 
   //}
   
 
-  console.log("historyToRender ne: ", user.sellingHistory[user.sellingHistory.length-1].history[0].buyer);
+  // console.log("historyToRender ne: ", user.sellingHistory[user.sellingHistory.length-1].history[0].buyer);
   
   return sendResponse(res, 200, true, user.sellingHistory, null, null);
 })

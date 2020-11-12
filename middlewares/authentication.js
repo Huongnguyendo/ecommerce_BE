@@ -17,6 +17,7 @@ authMiddleware.loginRequired = async (req, res, next) => {
      jwt.verify(token, JWT_SECRET_KEY, (err, payload) => {
       if (err) {
         console.log(err);
+        console.log("hihihihihi")
         if (err.name === "TokenExpiredError") {
           return next(new AppError(401, "Token expired", "Validation Error"));
         } else {
@@ -25,10 +26,12 @@ authMiddleware.loginRequired = async (req, res, next) => {
           );
         }
       }
+      console.log("qua roi")
       // console.log(payload);
       // we need this userId to find the user
       // next middleware we will need this req.userId
       // only when token is still valid, we return the user
+  
       req.userId = payload._id;
     });
     next();

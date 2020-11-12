@@ -15,7 +15,7 @@ const passport = require("passport");
 const mongoose = require("mongoose");
 
 
-mongoose.connect("mongodb://localhost:27017/testing", { useNewUrlParser: true }).catch(err => console.log(err));
+mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true }).catch(err => console.log(err));
 
 
 const db = mongoose.connection

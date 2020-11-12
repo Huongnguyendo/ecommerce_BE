@@ -34,7 +34,7 @@ const userSchema = Schema(
             address: String,
             purchaseDate: Date 
           }
-        ]
+        ] 
       }
     ],
     isDeleted: { type: Boolean, default: false, select: false },

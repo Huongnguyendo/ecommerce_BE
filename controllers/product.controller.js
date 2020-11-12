@@ -15,6 +15,7 @@ const {
     page = parseInt(page) || 1;
     limit = parseInt(limit) || 10;
 
+    // console.log("category o be ne: ", category);
   
     const totalProducts = await Product.countDocuments({
       ...filter,

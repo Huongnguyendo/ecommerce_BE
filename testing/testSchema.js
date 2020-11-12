@@ -22,7 +22,7 @@ function getRandomInt(min, max) {
 
 const cleanData = async (startTime) => {
   try {
-    await Seller.collection.drop();
+    // await Seller.collection.drop();
     await Product.collection.drop();
     await Review.collection.drop();
     await User.collection.drop();
@@ -49,8 +49,9 @@ const generateData = async () => {
     for (let i = 0; i < sellerNum; i++) {
       const salt = await bcrypt.genSalt(10);
       const password = await bcrypt.hash("123", salt);
-      await Seller.create({
+      await User.create({
         name: faker.name.findName(),
+        password,
         email: faker.internet.email().toLowerCase(),
         avatarUrl: faker.image.avatar(),
         brand: faker.random.word(),
@@ -75,8 +76,29 @@ const generateData = async () => {
       });
     }
 
-    let categories = ["Fashion", "Phones & Accessories", "Electronic device ", "Household goods",
-"Home & Life", "Health & Life", "Fashion Accessories", "Books"]
+    let categories = ["Fashion", "Phones and Accessories", "Electronic device ", "Household goods",
+"Home and Life", "Health and Life", "Fashion Accessories", "Books"]
+
+    let productPics = ["https://cf.shopee.vn/file/3bfcbcacc6ac23707ab1e706cec0e2d8_tn",
+    "https://cf.shopee.vn/file/6e0925121b0e6342b72df328d5a6115c",
+    "https://cf.shopee.vn/file/c2aef100d3096bc99100dac4cda15ca1",
+    "https://cf.shopee.vn/file/a04b8e73af502e46dcac59dc923b7130",
+    "https://cf.shopee.vn/file/1b37f8d0b32225fff5cab87a556ac135_tn",
+    "https://cf.shopee.vn/file/d0fcae643984dbe62f6efd027763567d",
+    "https://cf.shopee.vn/file/d4594c763c2a98448bd4cbce95ac015b",
+    "https://cf.shopee.vn/file/3cdbe531716013bfed73a6f38679bf66_tn",
+    "https://cf.shopee.vn/file/e363939ba4ba11e55d09cc88f9e06ba7",
+    "https://cf.shopee.vn/file/cbe25fdec4eb1311883d622106282b76_tn",
+    "https://cf.shopee.vn/file/a6f4ed2ae41515b799602a6a8a459adf",
+    "https://cf.shopee.vn/file/c4fb6e81787df938f573798c02a86886",
+    "https://cf.shopee.vn/file/1553529b098197d0493e41cde92c011e_tn",
+    "https://cf.shopee.vn/file/d168a64934c79b21b7aeabbed2dd786c_tn",
+    "https://cf.shopee.vn/file/baa6bf0f0db1fe474a5ab815ec189f25_tn",
+    "https://cf.shopee.vn/file/7b5add075ff255b990474f42a7a5ef12_tn",
+    "https://cf.shopee.vn/file/74dbcfd9eaafd456a45d2b66bacdc4c9_tn",
+    "https://cf.shopee.vn/file/150c35fd0874f47bfed85a3f4f740bac_tn",
+    "https://cf.shopee.vn/file/508a900e820a5a93446e2a4fb7a6dbd3_tn",
+    "https://cf.shopee.vn/file/a68f7f7bec9497ec86d09d6402b94fd2"]
 // let categories = []
 
     // for (let i = 0; i < 10; i++) {
@@ -96,7 +118,7 @@ const generateData = async () => {
       for (let j = 0; j < otherNum; j++) {
         await Product.create({
           name: faker.commerce.productName(),
-          image: faker.image.imageUrl(400, 300),
+          image: productPics[Math.floor(Math.random() * productPics.length)],
           price: faker.commerce.price(),
           brand: faker.company.companyName(),
           category: categories[Math.floor(Math.random() * categories.length)],
