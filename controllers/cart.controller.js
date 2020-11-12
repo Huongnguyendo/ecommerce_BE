@@ -22,7 +22,7 @@ cartController.addItemToCart = catchAsync(async (req, res) => {
     console.log("req.userId: ", req.userId)
     const { product, quantity } = req.body;
     // let cartItem = { productId, quantity };
-    // console.log("cartItem: ", cartItem);
+    console.log("product cart: ", product);
     
     let cart;
     cart = await Cart.findOne({ user: req.userId, isCheckedout: false });
@@ -41,6 +41,12 @@ cartController.addItemToCart = catchAsync(async (req, res) => {
         cart.cartItems[itemIndex].quantity += parseInt(quantity);
     }
     cart.save();
+
+    let productToUpdate = await Product.findById( product);
+    console.log("product cart 2: ", productToUpdate);
+    productToUpdate.inStockNum -= parseInt(quantity);
+    productToUpdate.save(); 
+
     console.log("cart: ", cart);
     return sendResponse(res, 200, true, cart, null, "");
 
@@ -80,6 +86,18 @@ cartController.removeItemFromCart = catchAsync(async (req, res) => {
     // console.log("cart.cartItems[0].product: ", cart.cartItems[0].product);
     // since filter returns an array
     let newCartItems = cart.cartItems.filter(item => item && item.product._id != product._id);
+
+    // let removedItems = cart.cartItems.filter(item => item && item.product._id == product._id);
+    /*
+    if(removedItems && removedItems.length) {
+        for(let i = 0; i < removedItems.length; i++) {
+            let productToUpdate = await Product.findById( removedItems[i].product._id);
+            console.log("product cart 3: ", productToUpdate);
+            productToUpdate.inStockNum += parseInt(quantity);
+            productToUpdate.save(); 
+        }
+    }
+    */
    
     cart.cartItems = newCartItems; 
     console.log("cart after filter: ", cart);
