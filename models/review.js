@@ -5,7 +5,7 @@ const Product = require("./product");
 const reviewSchema = Schema(
   {
     user: { type: Schema.ObjectId, required: true, ref: "User" },
-    rating: { type: Number, default: 0 },
+    rating: { type: Number, default: 5 },
     content: { type: String, required: true },
     product: { type: Schema.ObjectId, required: true, ref: "Product" },
   },
