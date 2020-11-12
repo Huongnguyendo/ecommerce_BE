@@ -114,7 +114,7 @@ const {
   productController.getSingleProductForSeller = catchAsync(async (req, res, next) => {
     let product = await Product.findById(req.params.id).populate("seller").populate("user");
     let user = req.userId;
-    console.log("here", user, product?.seller?._id )
+    // console.log("here", user, product?.seller?._id )
     if(user != product?.seller?._id) {
       // return next(new AppError(401, "Unauthori÷zed action", "Auth Error"));
       return sendResponse(res, 403, false, {error: "Unauthorized action"}, null, null);
