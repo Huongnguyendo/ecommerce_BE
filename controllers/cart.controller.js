@@ -19,6 +19,10 @@ cartController.getCart = catchAsync(async (req, res, next) => {
 cartController.addItemToCart = catchAsync(async (req, res) => {
     // console.log("req.user: ", req);
     // find user
+
+    // if(!req.userId) {
+    //     return sendResponse(res, 400, false, null, "You have to login!");
+    // }
     console.log("req.userId: ", req.userId)
     const { product, quantity } = req.body;
     // let cartItem = { productId, quantity };
@@ -42,10 +46,10 @@ cartController.addItemToCart = catchAsync(async (req, res) => {
     }
     cart.save();
 
-    let productToUpdate = await Product.findById( product);
-    console.log("product cart 2: ", productToUpdate);
-    productToUpdate.inStockNum -= parseInt(quantity);
-    productToUpdate.save(); 
+    // let productToUpdate = await Product.findById( product);
+    // console.log("product cart 2: ", productToUpdate);
+    // productToUpdate.inStockNum -= parseInt(quantity);
+    // productToUpdate.save(); 
 
     console.log("cart: ", cart);
     return sendResponse(res, 200, true, cart, null, "");
@@ -113,8 +117,21 @@ cartController.checkoutCart = catchAsync(async (req, res) =>{
     cart = await Cart.findOne({ user: req.userId, isCheckedout: false }).populate({path: "cartItems.product"});
     // console.log("selected cart ne: ", cart);
 
+ //chay for check coi con stock ko
+    for(let item of cart.cartItems) {
+        
+
+        const product = await Product.findById(item.product._id);
+        console.log(product.inStockNum , item.quantity)
+        if(product.inStockNum < item.quantity) {
+            console.log("I am here")
+            return sendResponse(res, 400, false, null, null, "Stock limit exceeded");
+       
+        }
+    }
 
     for(let item of cart.cartItems) {
+       
         console.log("wowwow ", item.product.name);
         console.log("item.product.seller: ", item.product.seller);
         let seller = await User.findById( item.product.seller)
@@ -132,7 +149,8 @@ cartController.checkoutCart = catchAsync(async (req, res) =>{
             seller.sellingHistory.push({product: item.product._id, history: []})
             index = seller.sellingHistory.length - 1
         }
-
+         await Product.update({_id: item.product._id}, {$inc: {inStockNum : - item.quantity}});
+     
         console.log("hihi", index,"index")
         seller.sellingHistory[index].history.push({
             buyer: req.userId,

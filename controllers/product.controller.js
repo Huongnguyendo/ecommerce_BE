@@ -148,6 +148,8 @@ const {
       seller,
 
     });
+
+    
   
     return sendResponse(res, 200, true, product, null, "Create new product successful");
   });
