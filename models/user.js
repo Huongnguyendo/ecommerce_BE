@@ -1,6 +1,5 @@
 // 1.
 const utilsHelper = require("../helpers/utils.helper");
-const emailHelper = require("../helpers/email.helper");
 const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 const jwt = require("jsonwebtoken");

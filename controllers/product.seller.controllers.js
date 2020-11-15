@@ -13,7 +13,6 @@ const {
   productSellerController.getSingleProductForSeller = catchAsync(async (req, res, next) => {
     let product = await Product.findById(req.params.id).populate("seller").populate("user");
     let user = req.userId;
-    // console.log("here", user, product?.seller?._id )
     if(user != product?.seller?._id) {
       return sendResponse(res, 403, false, {error: "Unauthorized action"}, null, null);
     }
@@ -22,7 +21,6 @@ const {
       return next(new AppError(404, "Product not found", "Get Single Product Error"));
       product = product.toJSON();
       product.reviews = await Review.find({ product: product._id }).populate("seller").populate("user");
-      console.log("product tra ve ne: ", product);
     return sendResponse(res, 200, true, product, null, null);
   });
 
@@ -35,20 +33,18 @@ productSellerController.getAllProductsForSeller = catchAsync(async (req, res, ne
 
     const products = await Product.find({seller: user, isDeleted:false})
 
-    console.log("day ne: ", products )
 
     if (!products)
       return next(new AppError(404, "Product not found", "Get Product Error"));
     //   products = products.toJSON();
     //   product.reviews = await Review.find({ product: product._id }).populate("seller").populate("user");
-      console.log("product tra ve ne: ", {products});
     return sendResponse(res, 200, true, {products}, null, null);
 })
   
 productSellerController.getHistoryForSeller = catchAsync(async (req, res, next) => {
   // let product = await Product.findById(req.params.id).populate("seller").populate("user");
   let userId = req.userId;
-                console.log(userId)
+  // console.log(userId)
   let user = await User.findById(userId).populate({path: "sellingHistory.product"}).populate({path: "sellingHistory.history.buyer"});
   // let sellingHistory =  await user.sellingHistory;
   // // let history = await sellingHistory[0].histtory;
@@ -91,7 +87,6 @@ productSellerController.getHistoryForSeller = catchAsync(async (req, res, next) 
   productSellerController.createNewProduct = catchAsync(async (req, res, next) => {
     const seller = req.userId;
     const { name, brand, description, category, inStockNum, image, price } = req.body;
-  console.log(seller)
     const product = await Product.create({
       name,
       brand,
@@ -111,7 +106,6 @@ productSellerController.getHistoryForSeller = catchAsync(async (req, res, next) 
     const seller = req.userId;
     const productId = req.params.id;
     const { name, description, image, brand, price, category, inStockNum } = req.body;
-    console.log("instock ne: ", inStockNum);
   
     const product = await Product.findOneAndUpdate(
       { _id: productId, seller: seller },

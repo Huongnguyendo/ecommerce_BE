@@ -10,14 +10,11 @@ authMiddleware.loginRequired = async (req, res, next) => {
     if (!tokenString)
       return next(new AppError(401, "Login required", "Validation Error"));
     const token = tokenString.replace("Bearer ", "");
-    console.log("hehehehe", tokenString)
-    console.log("dsdsd",token,"ok")
+    
     let decode =  await  jwt.verify(token, JWT_SECRET_KEY)
-    console.log(decode)
      jwt.verify(token, JWT_SECRET_KEY, (err, payload) => {
       if (err) {
         console.log(err);
-        console.log("hihihihihi")
         if (err.name === "TokenExpiredError") {
           return next(new AppError(401, "Token expired", "Validation Error"));
         } else {
@@ -26,8 +23,6 @@ authMiddleware.loginRequired = async (req, res, next) => {
           );
         }
       }
-      console.log("qua roi")
-      // console.log(payload);
       // we need this userId to find the user
       // next middleware we will need this req.userId
       // only when token is still valid, we return the user
@@ -42,10 +37,8 @@ authMiddleware.loginRequired = async (req, res, next) => {
 
 authMiddleware.isAdmin = async (req, res, next) => {
   try {
-    // console.log("req.userId ", req);
     let user = await User.findById(req.userId);
     if (user.role === "Admin") {
-      console.log("ta la admin");
       return next();
     } else {
       return next(new AppError(403, "Admin required", "Validation Error"));

@@ -21,7 +21,6 @@ categoryController.getCategories = catchAsync(async(req, res, next) => {
 categoryController.getProductsWithCategory = catchAsync(async(req, res, next) => {
     try {
         const category = req.body.category;
-        console.log("category: ", category);
 
         page = parseInt(page) || 1;
         limit = parseInt(limit) || 10;

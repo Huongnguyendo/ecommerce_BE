@@ -10,7 +10,6 @@ const {
   
   
   userController.register = catchAsync(async (req, res, next) => {
-      console.log("hihi");
     let { name, email, avatarUrl, password, role } = req.body;
     let user = await User.findOne({ email });
     if (user)
@@ -33,7 +32,6 @@ const {
 userController.updateProfile = catchAsync(async (req, res, next) => {
   const userId = req.userId;
   const allows = ["name", "password", "avatarUrl"];
-  console.log("avatar: ", req.body);
   const user = await User.findById(userId);
   if (!user) {
     return next(new AppError(404, "Account not found", "Update Profile Error"));
@@ -66,7 +64,6 @@ userController.getUsers = catchAsync(async (req, res, next) => {
     isDeleted: false,
   });
   const totalPages = Math.ceil(totalUsers / limit);
-  console.log("totalPages ne", totalPages);
 
   const offset = limit * (page - 1);
 
@@ -88,7 +85,6 @@ userController.getUsers = catchAsync(async (req, res, next) => {
 
 userController.deleteUser = catchAsync(async (req, res, next) => {
   const targetUserId = req.params.id;
-  console.log("targetUserId", targetUserId);
 
   let user = await User.findOneAndUpdate({ _id: targetUserId},
     { isDeleted: true },
@@ -130,9 +126,7 @@ userController.getBuyingHistory = catchAsync(async (req, res, next) => {
 
     let carts = await Cart.find({ user: userId, isCheckedout: true}).populate({path : "cartItems.product"})
     
-  console.log("huefhiuahfuha");
-    console.log("userHistory ne: ", carts);
-    
+  
     return sendResponse(res, 200, true, carts, null, null);
 })
 

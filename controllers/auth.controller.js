@@ -10,9 +10,7 @@ const {
   authController.loginWithEmail = catchAsync(async (req, res, next) => {
     const { email, password } = req.body;
     // create an instance user of class User
-    console.log("hehe", email, password);
     const user = await User.findOne({ email }, "+password");
-    console.log(user)
     if (!user)
       return next(new AppError(400, "Invalid credentials", "Login Error"));
   // after had user, compare raw password and hash password
@@ -21,12 +19,10 @@ const {
   // when user successfully logined, generate a token to send back to their browser
   // here we create a token for the instance user
     accessToken = await user.generateToken();
-    console.log("authcontroller ", accessToken);
   
     // newly added
     next();
 
-    console.log("user._id ", user._id);
     // req.userId = user._id;
     return sendResponse(
       res,

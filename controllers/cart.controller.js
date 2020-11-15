@@ -17,16 +17,13 @@ cartController.getCart = catchAsync(async (req, res, next) => {
 
 
 cartController.addItemToCart = catchAsync(async (req, res) => {
-    // console.log("req.user: ", req);
     // find user
 
     // if(!req.userId) {
     //     return sendResponse(res, 400, false, null, "You have to login!");
     // }
-    console.log("req.userId: ", req.userId)
+    // console.log("req.userId: ", req.userId)
     const { product, quantity } = req.body;
-    // let cartItem = { productId, quantity };
-    console.log("product cart: ", product);
     
     let cart;
     cart = await Cart.findOne({ user: req.userId, isCheckedout: false });
@@ -46,26 +43,18 @@ cartController.addItemToCart = catchAsync(async (req, res) => {
     }
     cart.save();
 
-    // let productToUpdate = await Product.findById( product);
-    // console.log("product cart 2: ", productToUpdate);
-    // productToUpdate.inStockNum -= parseInt(quantity);
-    // productToUpdate.save(); 
 
-    console.log("cart: ", cart);
+    // console.log("cart: ", cart);
     return sendResponse(res, 200, true, cart, null, "");
 
 });
 
 cartController.decreaseQualityFromCart = catchAsync(async (req, res) => {
-    // console.log("req.user: ", req);
     // find user
-    console.log("req.userId: ", req.userId)
     const { product, quantity } = req.body;
     let cart = await Cart.findOne({ user: req.userId, isCheckedout: false });
     
-    console.log("cart: ", cart);
     let itemIndex = cart.cartItems.findIndex(item => item && item.product == product);
-    console.log("itemIndex: ", itemIndex);
     cart.cartItems[itemIndex].quantity -= parseInt(quantity);
 
     if(cart.cartItems[itemIndex].quantity <= 0) {
@@ -80,31 +69,13 @@ cartController.decreaseQualityFromCart = catchAsync(async (req, res) => {
 
 
 cartController.removeItemFromCart = catchAsync(async (req, res) => {
-    console.log("req.userId: ", req.userId)
     const { product } = req.body;
-    console.log("product ne: ", product)
     let cart =  await Cart.findOne({ user: req.userId, isCheckedout: false }).populate({path : "cartItems.product"})
     
-    console.log("cart: ", cart);
-
-    // console.log("cart.cartItems[0].product: ", cart.cartItems[0].product);
     // since filter returns an array
     let newCartItems = cart.cartItems.filter(item => item && item.product._id != product._id);
-
-    // let removedItems = cart.cartItems.filter(item => item && item.product._id == product._id);
-    /*
-    if(removedItems && removedItems.length) {
-        for(let i = 0; i < removedItems.length; i++) {
-            let productToUpdate = await Product.findById( removedItems[i].product._id);
-            console.log("product cart 3: ", productToUpdate);
-            productToUpdate.inStockNum += parseInt(quantity);
-            productToUpdate.save(); 
-        }
-    }
-    */
    
     cart.cartItems = newCartItems; 
-    console.log("cart after filter: ", cart);
     cart.save();
     
     return sendResponse(res, 200, true, cart, null, "");
@@ -113,60 +84,45 @@ cartController.removeItemFromCart = catchAsync(async (req, res) => {
 
 cartController.checkoutCart = catchAsync(async (req, res) =>{
     let cart;
-    console.log("user id ban dau: ", req.userId)
     cart = await Cart.findOne({ user: req.userId, isCheckedout: false }).populate({path: "cartItems.product"});
-    // console.log("selected cart ne: ", cart);
 
- //chay for check coi con stock ko
+    // check to see if product is still in stock
     for(let item of cart.cartItems) {
         
-
         const product = await Product.findById(item.product._id);
-        console.log(product.inStockNum , item.quantity)
         if(product.inStockNum < item.quantity) {
-            console.log("I am here")
             return sendResponse(res, 400, false, null, null, "Stock limit exceeded");
-       
         }
     }
 
     for(let item of cart.cartItems) {
        
-        console.log("wowwow ", item.product.name);
-        console.log("item.product.seller: ", item.product.seller);
         let seller = await User.findById( item.product.seller)
         if (!seller) continue;
-        console.log("seller ne: ", seller);
-        console.log(item._id,"ai di")
+        
 
        let index =  await seller.sellingHistory.findIndex(pd => { 
-        console.log("pd", pd.product)
-        console.log("item", item.product._id)
+        
         return pd.product.toString() == item.product._id.toString()})
 
         if (index < 0) {
-           console.log("khong co")
             seller.sellingHistory.push({product: item.product._id, history: []})
             index = seller.sellingHistory.length - 1
         }
          await Product.update({_id: item.product._id}, {$inc: {inStockNum : - item.quantity}});
      
-        console.log("hihi", index,"index")
         seller.sellingHistory[index].history.push({
             buyer: req.userId,
             quantity: item.quantity,
             price: item.product.price,
             purchaseDate: Date.now()
         })
-        console.log(req.userId)
-        console.log("seller 2222", seller)
+        
         await seller.save()
     }
 
     cart.isCheckedout = true;
     cart.save();
-
-    // console.log("post selected cart: ", cart);
 
     return sendResponse(res, 200, true, cart, null, "");
 })
