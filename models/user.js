@@ -18,7 +18,8 @@ const userSchema = Schema(
     role: {
       type: String,
       default: 'User',
-      enum: ['User', 'Admin', 'Seller', 'Shipper']
+      enum: ['User', 'Admin', 'Seller', 'Shipper'],
+      // required: true,
     },
     // seller: { type: Schema.ObjectId, ref: "Seller" },
     sellingHistory: [

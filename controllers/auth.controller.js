@@ -23,6 +23,8 @@ const {
     // newly added
     next();
 
+    console.log("user: ", user);
+
     // req.userId = user._id;
     return sendResponse(
       res,

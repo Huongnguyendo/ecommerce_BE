@@ -23,8 +23,9 @@ cartController.addItemToCart = catchAsync(async (req, res) => {
     //     return sendResponse(res, 400, false, null, "You have to login!");
     // }
     // console.log("req.userId: ", req.userId)
-    const { product, quantity } = req.body;
+    const { product, quantity, currentPrice } = req.body;
     
+
     let cart;
     cart = await Cart.findOne({ user: req.userId, isCheckedout: false });
     if (!cart) {
@@ -37,14 +38,14 @@ cartController.addItemToCart = catchAsync(async (req, res) => {
     
     let itemIndex = cart.cartItems.findIndex(item => item && item.product == product);
     if (itemIndex === -1) {
-        cart.cartItems.push({ product, quantity })
+        cart.cartItems.push({ product, quantity, currentPrice })
     } else {
         cart.cartItems[itemIndex].quantity += parseInt(quantity);
     }
     cart.save();
 
 
-    // console.log("cart: ", cart);
+    console.log("cart: ", cart);
     return sendResponse(res, 200, true, cart, null, "");
 
 });
@@ -105,16 +106,17 @@ cartController.checkoutCart = catchAsync(async (req, res) =>{
         
         return pd.product.toString() == item.product._id.toString()})
 
+        // that product is yet to exist in selling history
         if (index < 0) {
             seller.sellingHistory.push({product: item.product._id, history: []})
-            index = seller.sellingHistory.length - 1
+            index = seller.sellingHistory.length - 1 //?
         }
          await Product.update({_id: item.product._id}, {$inc: {inStockNum : - item.quantity}});
      
         seller.sellingHistory[index].history.push({
             buyer: req.userId,
             quantity: item.quantity,
-            price: item.product.price,
+            price: item.currentPrice,
             purchaseDate: Date.now()
         })
         

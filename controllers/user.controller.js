@@ -12,6 +12,7 @@ const {
   userController.register = catchAsync(async (req, res, next) => {
     let { name, email, avatarUrl, password, role } = req.body;
     let user = await User.findOne({ email });
+    console.log("role: ", role);
     if (user)
       return next(new AppError(409, "User already exists", "Register Error"));
   
@@ -24,6 +25,7 @@ const {
       avatarUrl,
       role
     });
+    console.log("user: ", user);
     const accessToken = await user.generateToken();
   
     return sendResponse(res, 200, true, { user }, null, "Create user successful");
