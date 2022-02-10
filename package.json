@@ -24,7 +24,8 @@
     "morgan": "~1.9.1",
     "passport": "^0.4.1",
     "passport-facebook-token": "^4.0.0",
-    "passport-google-token": "^0.1.2"
+    "passport-google-token": "^0.1.2",
+    "stripe": "^8.199.0"
   },
   "devDependencies": {
     "nodemon": "^2.0.5"

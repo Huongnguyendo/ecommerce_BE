@@ -1,42 +1,63 @@
 const {
-    AppError,
-    catchAsync,
-    sendResponse,
-  } = require("../helpers/utils.helper");
-  const User = require("../models/user");
-  const Cart = require('../models/cart');
-  const bcrypt = require("bcryptjs");
-  const userController = {};
-  
-  
-  userController.register = catchAsync(async (req, res, next) => {
-    let { name, email, avatarUrl, password, role } = req.body;
-    let user = await User.findOne({ email });
-    console.log("role: ", role);
-    if (user)
-      return next(new AppError(409, "User already exists", "Register Error"));
-  
-    const salt = await bcrypt.genSalt(10);
-    password = await bcrypt.hash(password, salt);
-    user = await User.create({
-      name,
-      email,
-      password,
-      avatarUrl,
-      role
-    });
-    console.log("user: ", user);
-    const accessToken = await user.generateToken();
-  
-    return sendResponse(res, 200, true, { user }, null, "Create user successful");
+  AppError,
+  catchAsync,
+  sendResponse,
+} = require("../helpers/utils.helper");
+const User = require("../models/user");
+const Cart = require("../models/cart");
+const bcrypt = require("bcryptjs");
+const userController = {};
+
+userController.register = catchAsync(async (req, res, next) => {
+  let { name, email, avatarUrl, password, role } = req.body;
+  let user = await User.findOne({ email });
+  // console.log("role: ", role);
+  if (user)
+    // return next(new AppError(409, "User already exists", "Register Error"));
+    return sendResponse(
+      res,
+      409,
+      false,
+      { error: "User already exists" },
+      null,
+      null
+    );
+
+  const salt = await bcrypt.genSalt(10);
+  password = await bcrypt.hash(password, salt);
+  user = await User.create({
+    name,
+    email,
+    password,
+    avatarUrl,
+    role,
   });
+  // const accessToken = await user.generateToken();
+
+  return sendResponse(
+    res,
+    200,
+    true,
+    { user },
+    null,
+    "Create user successfully"
+  );
+});
 
 userController.updateProfile = catchAsync(async (req, res, next) => {
   const userId = req.userId;
   const allows = ["name", "password", "avatarUrl"];
   const user = await User.findById(userId);
   if (!user) {
-    return next(new AppError(404, "Account not found", "Update Profile Error"));
+    // return next(new AppError(404, "Account not found", "Update Profile Error"));
+    return sendResponse(
+      res,
+      404,
+      false,
+      { error: "Update Profile Error" },
+      null,
+      null
+    );
   }
 
   allows.forEach((field) => {
@@ -44,6 +65,7 @@ userController.updateProfile = catchAsync(async (req, res, next) => {
       user[field] = req.body[field];
     }
   });
+
   await user.save();
   return sendResponse(
     res,
@@ -74,64 +96,71 @@ userController.getUsers = catchAsync(async (req, res, next) => {
     .skip(offset)
     .limit(limit);
 
-  return sendResponse(
-    res,
-    200,
-    true,
-    { users: users, totalPages },
-    null,
-    ""
-  );
+  return sendResponse(res, 200, true, { users: users, totalPages }, null, "");
 });
-
 
 userController.deleteUser = catchAsync(async (req, res, next) => {
   const targetUserId = req.params.id;
 
-  let user = await User.findOneAndUpdate({ _id: targetUserId},
-    { isDeleted: true },
+  let user = await User.findOneAndUpdate(
+    { _id: targetUserId },
+    { isDeleted: true }
     // { new: true }
-    )
+  );
 
-    if (!user)
-    return next(
-      new AppError(
-        400,
-        "User not found or Action not authorized",
-        "Delete User Error"
-      )
+  if (!user)
+    // return next(
+    //   new AppError(
+    //     400,
+    //     "User not found or Action not authorized",
+    //     "Delete User Error"
+    //   )
+    // );
+    return sendResponse(
+      res,
+      400,
+      false,
+      { error: "User not found or Action not authorized" },
+      null,
+      null
     );
 
-  return sendResponse(res, 200, true, null, null, "Delete User successful");
+  return sendResponse(res, 200, true, null, null, "Delete User successfully");
 });
-
-
 
 userController.getCurrentUser = catchAsync(async (req, res, next) => {
   const userId = req.userId;
   const user = await User.findById(userId);
   if (!user)
-    return next(new AppError(400, "User not found", "Get Current User Error"));
+    // return next(new AppError(400, "User not found", "Get Current User Error"));
+    return sendResponse(
+      res,
+      400,
+      false,
+      { error: "Get Current User Error" },
+      null,
+      null
+    );
   return sendResponse(
     res,
     200,
     true,
     user,
     null,
-    "Get current user successful"
+    "Get current user successfully"
   );
 });
-  
+
 userController.getBuyingHistory = catchAsync(async (req, res, next) => {
-    // let product = await Product.findById(req.params.id).populate("seller").populate("user");
-    let userId = req.userId;
+  // let product = await Product.findById(req.params.id).populate("seller").populate("user");
+  let userId = req.userId;
 
-    let carts = await Cart.find({ user: userId, isCheckedout: true}).populate({path : "cartItems.product"})
-    
-  
-    return sendResponse(res, 200, true, carts, null, null);
-})
+  let carts = await Cart.find({ user: userId, isCheckedout: true }).populate({
+    path: "cartItems.product",
+  });
 
+  return sendResponse(res, 200, true, carts, null, null);
+});
 
 userController.verifyEmail = catchAsync(async (req, res, next) => {
   const { code } = req.body;
@@ -139,8 +168,16 @@ userController.verifyEmail = catchAsync(async (req, res, next) => {
     emailVerificationCode: code,
   });
   if (!user) {
-    return next(
-      new AppError(400, "Invalid Verification Code", "Verify Email Error")
+    // return next(
+    //   new AppError(400, "Invalid Verification Code", "Verify Email Error")
+    // );
+    return sendResponse(
+      res,
+      400,
+      false,
+      { error: "Verify Email Error" },
+      null,
+      null
     );
   }
   user = await User.findByIdAndUpdate(
@@ -161,5 +198,4 @@ userController.verifyEmail = catchAsync(async (req, res, next) => {
   );
 });
 
-  
-  module.exports = userController;
+module.exports = userController;

@@ -1,55 +1,84 @@
 const {
-    AppError,
-    catchAsync,
-    sendResponse,
-  } = require("../helpers/utils.helper");
-const Category = require('../models/category');
-const Product = require('../models/product');
+  AppError,
+  catchAsync,
+  sendResponse,
+} = require("../helpers/utils.helper");
+const Category = require("../models/category");
+const Product = require("../models/product");
 const categoryController = {};
 
-categoryController.getCategories = catchAsync(async(req, res, next) => {
+categoryController.getCategories = catchAsync(async (req, res, next) => {
+  try {
+    const categories = await Category.find();
+    return sendResponse(
+      res,
+      200,
+      true,
+      categories,
+      null,
+      "Get category successful"
+    );
+  } catch (err) {
+    // return new AppError(404, "Category not found");
+    return sendResponse(
+      res,
+      404,
+      false,
+      { error: "Category not found" },
+      { error: "Category not found" },
+      null
+    );
+  }
+});
+
+categoryController.getProductsWithCategory = catchAsync(
+  async (req, res, next) => {
     try {
-        const categories = await Category.find()
-        return sendResponse(res,200,true,categories,null,
-            "Get category successful");
-    } catch (err) {
-        return new AppError(404, "Category not found");
-    }
-    
-})
+      const category = req.body.category;
 
-categoryController.getProductsWithCategory = catchAsync(async(req, res, next) => {
-    try {
-        const category = req.body.category;
+      page = parseInt(page) || 1;
+      limit = parseInt(limit) || 10;
 
-        page = parseInt(page) || 1;
-        limit = parseInt(limit) || 10;
-        
-        
-        let filterProducts;
-        if (!category || category === "All") {
-            filterProducts = await Product.find().populate("seller");
-        } else {
-            filterProducts = await Product.find({ category: category }).populate("seller");
-        }
+      let filterProducts;
+      if (!category || category === "All") {
+        filterProducts = await Product.find().populate("seller");
+      } else {
+        filterProducts = await Product.find({ category: category }).populate(
+          "seller"
+        );
+      }
 
-        const totalPages = Math.ceil(filterProducts / limit);
-        const offset = limit * (page - 1);
+      const totalPages = Math.ceil(filterProducts / limit);
+      const offset = limit * (page - 1);
 
-        const products = await filterProducts
+      const products = await filterProducts
         .sort({ ...sortBy, createdAt: -1 })
         .skip(offset)
-        .limit(limit)
-        // .populate("seller");
+        .limit(limit);
+      // .populate("seller");
 
-        return sendResponse(res,200,true,{products, totalPages},null,
-        "Get products in category successful");
+      return sendResponse(
+        res,
+        200,
+        true,
+        { products, totalPages },
+        null,
+        "Get products in category successful"
+      );
     } catch (err) {
-        return new AppError(404, "Products not found");
+      //   return new AppError(404, "Products not found");
+      return sendResponse(
+        res,
+        404,
+        false,
+        { error: "Products not found" },
+        null,
+        null
+      );
     }
-    
-})
-    
+  }
+);
+
 // categoryController.createCategory =  catchAsync(async(req, res, next) =>{
 //         try {
 //             // if user have role = 1 ---> admin
@@ -91,7 +120,5 @@ categoryController.getProductsWithCategory = catchAsync(async(req, res, next) =>
 //             return res.status(500).json({msg: err.message})
 //         }
 //     })
-
-
 
 module.exports = categoryController;

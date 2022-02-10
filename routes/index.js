@@ -6,7 +6,6 @@ const router = express.Router();
 const userApi = require("./user.api");
 router.use("/users", userApi);
 
-
 // authApi
 const authApi = require("./auth.api");
 router.use("/auth", authApi);
@@ -31,10 +30,14 @@ router.use("/category", categoryApi);
 const reviewApi = require("./review.api");
 router.use("/reviews", reviewApi);
 
+// stripeApi
+const stripeApi = require("./stripe.api");
+router.use("/stripe", stripeApi);
+
 // send email
 router.get("/test-email", (req, res) => {
-    email.sendTestEmail();
-    res.send("email sent");
-  });
+  email.sendTestEmail();
+  res.send("email sent");
+});
 
 module.exports = router;
