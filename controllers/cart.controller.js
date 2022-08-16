@@ -23,7 +23,6 @@ cartController.addItemToCart = catchAsync(async (req, res) => {
   // if(!req.userId) {
   //     return sendResponse(res, 400, false, null, "You have to login!");
   // }
-  // console.log("req.userId: ", req.userId)
   const { product, quantity, currentPrice } = req.body;
 
   let cart;

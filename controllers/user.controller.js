@@ -11,7 +11,6 @@ const userController = {};
 userController.register = catchAsync(async (req, res, next) => {
   let { name, email, avatarUrl, password, role } = req.body;
   let user = await User.findOne({ email });
-  // console.log("role: ", role);
   if (user)
     // return next(new AppError(409, "User already exists", "Register Error"));
     return sendResponse(

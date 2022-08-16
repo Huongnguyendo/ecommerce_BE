@@ -71,7 +71,6 @@ userSchema.methods.generateToken = async function () {
   const accessToken = await jwt.sign({ _id: this._id }, JWT_SECRET_KEY, {
     expiresIn: "10d",
   });
-  // console.log("accessToken", accessToken);
   return accessToken;
 };
 
