@@ -21,7 +21,6 @@ orderController.getCart = catchAsync(async (req, res, next) => {
   const totalPages = Math.ceil(totalProducts / limit);
   const offset = limit * (page - 1);
 
-  // console.log({ filter, sortBy });
   const products = await Product.find(filter)
     .sort({ ...sortBy, createdAt: -1 })
     .skip(offset)
