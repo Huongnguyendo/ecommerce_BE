@@ -37,4 +37,8 @@ app.use(passport.initialize())
 app.use('/api', indexRouter);
 // app.use('/users', usersRouter);
 
+app.get("/", (req, res) => {
+    res.send("Hello, World!");
+});
+
 module.exports = app;
