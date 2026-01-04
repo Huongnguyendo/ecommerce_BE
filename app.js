@@ -8,6 +8,7 @@ var indexRouter = require("./routes/index");
 require("./helpers/passport.helper");
 const passport = require("passport");
 const utilsHelper = require("./helpers/utils.helper");
+const cronService = require("./services/cronService");
 
 // const mongoURI = process.env.URI
 
@@ -15,18 +16,37 @@ const utilsHelper = require("./helpers/utils.helper");
 const mongoose = require("mongoose");
 
 mongoose
-  .connect(process.env.MONGODB_URI, { useNewUrlParser: true })
-  .catch((err) => console.log(err));
+  .connect(process.env.MONGODB_URI, { 
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+    serverSelectionTimeoutMS: 5000
+  })
+  .catch((err) => console.log("MongoDB connection error:", err));
 
 const db = mongoose.connection;
-db.once("open", function () {
+db.once("open", async function () {
   console.log("MongoDB database connection established successfully!");
   // require("./testing/testSchema");
+  
+  // Start the daily discount cron job (will run immediately if no deals exist)
+  await cronService.startDailyDiscountJob();
+});
+
+db.on("error", function(err) {
+  console.error("MongoDB connection error:", err);
+});
+
+db.on("disconnected", function() {
+  console.error("MongoDB disconnected!");
 });
 
 var app = express();
 
-app.use(cors());
+// CORS configuration - uses environment variable or defaults to localhost for development
+app.use(cors({
+  origin: process.env.FRONTEND_URL || "http://localhost:3000",
+  credentials: true
+}));
 app.use(logger("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));

@@ -4,6 +4,35 @@ const { AppError, sendResponse } = require("../helpers/utils.helper");
 const User = require("../models/user");
 const authMiddleware = {};
 
+authMiddleware.attachUserIfExists = async (req, res, next) => {
+  try {
+    const tokenString = req.headers.authorization;
+    if (!tokenString) {
+      // No token provided, continue without setting userId
+      return next();
+    }
+    
+    const token = tokenString.replace("Bearer ", "");
+    
+    jwt.verify(token, JWT_SECRET_KEY, (err, decodedPayload) => {
+      if (err) {
+        // Token is invalid or expired, continue without setting userId
+        console.log('Token verification failed:', err.message);
+        return next();
+      }
+      
+      // Token is valid, set userId
+      req.userId = decodedPayload._id;
+      console.log('User attached, userId:', req.userId);
+      next();
+    });
+  } catch (error) {
+    // Error occurred, continue without setting userId
+    console.log('Error in attachUserIfExists:', error.message);
+    next();
+  }
+};
+
 authMiddleware.loginRequired = async (req, res, next) => {
   try {
     const tokenString = req.headers.authorization;
@@ -45,8 +74,8 @@ authMiddleware.loginRequired = async (req, res, next) => {
 
       // get id of decodedPayload, attach it to req as userId
       req.userId = decodedPayload._id;
+      next();
     });
-    next();
   } catch (error) {
     next(error);
   }

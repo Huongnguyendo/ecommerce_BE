@@ -13,8 +13,20 @@ const reviewSchema = Schema(
 );
 
 reviewSchema.statics.calculateReviews = async function (productId) {
-    const reviewCount = await this.find({ product: productId }).countDocuments();
-    await Product.findByIdAndUpdate(productId, { reviewCount: reviewCount });
+    const reviews = await this.find({ product: productId });
+    const reviewCount = reviews.length;
+    
+    // Calculate average rating - only if there are reviews
+    let averageRating = null; // No default rating
+    if (reviewCount > 0) {
+      const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
+      averageRating = Math.round((totalRating / reviewCount) * 10) / 10; // Round to 1 decimal place
+    }
+    
+    await Product.findByIdAndUpdate(productId, { 
+      reviewCount: reviewCount,
+      rating: averageRating
+    });
   };
   
   reviewSchema.post("save", async function () {
@@ -33,6 +45,17 @@ reviewSchema.pre(/^findOneAnd/, async function (next) {
   reviewSchema.post(/^findOneAnd/, async function (next) {
     await this.doc.constructor.calculateReviews(this.doc.blog);
   });
+
+// Function to recalculate all product ratings (useful for existing data)
+reviewSchema.statics.recalculateAllRatings = async function () {
+  const products = await Product.find({});
+  
+  for (const product of products) {
+    await this.calculateReviews(product._id);
+  }
+  
+  console.log(`✅ Recalculated ratings for ${products.length} products`);
+};
 
 const Review = mongoose.model("Review", reviewSchema);
 module.exports = Review;

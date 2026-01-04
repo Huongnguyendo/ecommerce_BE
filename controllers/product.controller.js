@@ -8,11 +8,101 @@ const Review = require("../models/review");
 const User = require("../models/user");
 const Seller = require("../models/seller");
 const productController = {};
+const tfRecommendation = require("../helpers/tfrecommendation.js");
+const mongoose = require("mongoose");
+const Category = require("../models/category");
+const { getEffectivePrice, hasActiveDiscount, getTodaysDeals } = require("../helpers/discount.helper");
+
+// Helper function to enhance products with discount information
+function enhanceProductsWithDiscounts(products) {
+  const now = new Date();
+  
+  return products.map(product => {
+    const productObj = product.toObject ? product.toObject() : product;
+    const effectivePrice = getEffectivePrice(productObj);
+    
+    // Check if discount is active using the helper function
+    const isDiscountActive = hasActiveDiscount(productObj);
+    
+    // Also check manually for products with discountPercent > 0
+    const hasDiscountPercent = productObj.discountPercent > 0 && 
+                                productObj.discountExpiresAt && 
+                                new Date(productObj.discountExpiresAt) > now;
+    
+    // Calculate discount amount
+    const calculatedDiscount = productObj.price - effectivePrice;
+    const discountAmount = (isDiscountActive || hasDiscountPercent) ? calculatedDiscount : 0;
+    
+    // For products with discountPercent > 0, always set hasDiscount to true
+    // This ensures Today's Deals always show discount info
+    const hasDiscount = isDiscountActive || hasDiscountPercent || (productObj.discountPercent > 0);
+    
+    return {
+      ...productObj,
+      effectivePrice: (isDiscountActive || hasDiscountPercent) ? effectivePrice : productObj.price,
+      hasDiscount: hasDiscount,
+      originalPrice: productObj.price,
+      discountAmount: discountAmount > 0 ? discountAmount : 0,
+      // Ensure discountPercent is included
+      discountPercent: productObj.discountPercent || 0
+    };
+  });
+}
 
 productController.getProducts = catchAsync(async (req, res, next) => {
-  let { page, limit, sortBy, ...filter } = { ...req.query };
+  let { page, limit, sortBy, category, search, ...filter } = { ...req.query };
   page = parseInt(page) || 1;
   limit = parseInt(limit) || 10;
+
+  // Record recent search (non-empty) for authenticated users
+  try {
+    const q = (search || '').trim();
+    if (req.userId && q && q.length >= 2) {
+      const user = await User.findById(req.userId);
+      if (user) {
+        user.recentSearches = user.recentSearches || [];
+        // remove existing
+        user.recentSearches = user.recentSearches.filter(s => s.toLowerCase() !== q.toLowerCase());
+        // unshift
+        user.recentSearches.unshift(q);
+        if (user.recentSearches.length > 20) user.recentSearches = user.recentSearches.slice(0, 20);
+        await user.save();
+      }
+    }
+  } catch (e) {
+    // Silently handle error
+  }
+
+  // Search filter: search in name, description, and brand
+  if (search && search.trim()) {
+    const searchTerm = search.trim();
+    filter.$or = [
+      { name: { $regex: searchTerm, $options: "i" } },
+      { description: { $regex: searchTerm, $options: "i" } },
+      { brand: { $regex: searchTerm, $options: "i" } },
+    ];
+  }
+
+  // Flexible category filter: support both ObjectId and name
+  if (category) {
+    let categoryId = null;
+    // Try to interpret as ObjectId
+    if (mongoose.Types.ObjectId.isValid(category)) {
+      categoryId = category;
+    } else {
+      // Try to look up by name
+      const categoryDoc = await Category.findOne({ name: category });
+      if (categoryDoc) {
+        categoryId = categoryDoc._id;
+      }
+    }
+    if (categoryId) {
+      filter.category = categoryId;
+    } else {
+      // No such category, return empty result
+      return sendResponse(res, 200, true, { products: [], totalPages: 0 }, null, "");
+    }
+  }
 
   const totalProducts = await Product.countDocuments({
     ...filter,
@@ -26,73 +116,18 @@ productController.getProducts = catchAsync(async (req, res, next) => {
     .skip(offset)
     .limit(limit)
     .populate("seller");
-  // console.log(products);
-  return sendResponse(res, 200, true, { products, totalPages }, null, "");
+  
+  // Enhance products with discount information
+  const enhancedProducts = enhanceProductsWithDiscounts(products);
+  
+  return sendResponse(res, 200, true, { products: enhancedProducts, totalPages }, null, "");
 });
-
-productController.getProductsByKeyword = catchAsync(async (req, res, next) => {
-  let { page, limit, sortBy, ...filter } = { ...req.query };
-  let { keyword } = req.body;
-  // const offset = limit * (page - 1);
-  keyword = keyword.toLowerCase();
-
-  const products = await Product.find({
-    $or: [
-      { name: { $regex: `.*${keyword}.*`, $options: "i" } },
-      { category: { $regex: `.*${keyword}.*`, $options: "i" } },
-    ],
-  })
-    .sort({ ...sortBy, createdAt: -1 })
-    // .skip(offset)
-    // .limit(limit)
-    .populate("seller");
-
-  return sendResponse(res, 200, true, { products }, null, "");
-});
-
-productController.getProductsWithCategory = catchAsync(
-  async (req, res, next) => {
-    try {
-      const category = req.body.category;
-
-      let filterProducts;
-      if (!category || category === "All") {
-        filterProducts = await Product.find().populate("seller");
-      } else {
-        filterProducts = await Product.find({ category: category }).populate(
-          "seller"
-        );
-      }
-      return sendResponse(
-        res,
-        200,
-        true,
-        filterProducts,
-        null,
-        "Get products in category successful"
-      );
-    } catch (err) {
-      // return new AppError(404, "Products not found");
-      return sendResponse(
-        res,
-        404,
-        false,
-        { error: "Products not found" },
-        { error: "Get Product Error" },
-        null
-      );
-    }
-  }
-);
 
 productController.getSingleProduct = catchAsync(async (req, res, next) => {
   let product = await Product.findById(req.params.id)
     .populate("seller")
     .populate("user");
   if (!product)
-    // return next(
-    //   new AppError(404, "Product not found", "Get Single Product Error")
-    // );
     return sendResponse(
       res,
       404,
@@ -101,11 +136,36 @@ productController.getSingleProduct = catchAsync(async (req, res, next) => {
       null,
       null
     );
+
+  // Record recent view for authenticated users
+  try {
+    if (req.userId) {
+      const user = await User.findById(req.userId);
+      if (user) {
+        user.recentViews = user.recentViews || [];
+        const pid = product._id.toString();
+        // remove if exists
+        user.recentViews = user.recentViews.filter(id => id.toString() !== pid);
+        // unshift to front
+        user.recentViews.unshift(product._id);
+        // cap to 20
+        if (user.recentViews.length > 20) user.recentViews = user.recentViews.slice(0, 20);
+        await user.save();
+      }
+    }
+  } catch (e) {
+    // Silently handle error
+  }
+
   product = product.toJSON();
   product.reviews = await Review.find({ product: product._id })
     .populate("seller")
     .populate("user");
-  return sendResponse(res, 200, true, product, null, null);
+  
+  // Enhance product with discount information
+  const enhancedProduct = enhanceProductsWithDiscounts([product])[0];
+  
+  return sendResponse(res, 200, true, enhancedProduct, null, null);
 });
 
 productController.getSingleProductForSeller = catchAsync(
@@ -142,7 +202,11 @@ productController.getSingleProductForSeller = catchAsync(
     product.reviews = await Review.find({ product: product._id })
       .populate("seller")
       .populate("user");
-    return sendResponse(res, 200, true, product, null, null);
+    
+    // Enhance product with discount information
+    const enhancedProduct = enhanceProductsWithDiscounts([product])[0];
+    
+    return sendResponse(res, 200, true, enhancedProduct, null, null);
   }
 );
 
@@ -154,25 +218,111 @@ productController.createNewProduct = catchAsync(async (req, res, next) => {
   const { name, brand, description, category, inStockNum, image, price } =
     req.body;
 
-  const product = await Product.create({
-    name,
-    brand,
-    description,
-    category,
-    inStockNum,
-    image,
-    price,
-    seller,
-  });
+  // Validate required fields
+  if (!name || !brand || !description || !category || !image) {
+    return sendResponse(
+      res,
+      400,
+      false,
+      { error: "Missing required fields: name, brand, description, category, and image are required" },
+      null,
+      null
+    );
+  }
 
-  return sendResponse(
-    res,
-    200,
-    true,
-    product,
-    null,
-    "Create new product successfully"
-  );
+  // Validate numeric fields
+  if (price === undefined || price === null || isNaN(price) || price < 0) {
+    return sendResponse(
+      res,
+      400,
+      false,
+      { error: "Price must be a valid positive number" },
+      null,
+      null
+    );
+  }
+
+  if (inStockNum === undefined || inStockNum === null || isNaN(inStockNum) || inStockNum < 0) {
+    return sendResponse(
+      res,
+      400,
+      false,
+      { error: "Stock quantity must be a valid positive number" },
+      null,
+      null
+    );
+  }
+
+  // Handle category: can be ObjectId or category name
+  let categoryId = null;
+  if (mongoose.Types.ObjectId.isValid(category)) {
+    // It's already an ObjectId
+    categoryId = category;
+  } else {
+    // It's a category name, look it up
+    const categoryDoc = await Category.findOne({ name: category });
+    if (!categoryDoc) {
+      return sendResponse(
+        res,
+        400,
+        false,
+        { error: `Category "${category}" not found. Please select a valid category.` },
+        null,
+        null
+      );
+    }
+    categoryId = categoryDoc._id;
+  }
+
+  // Check if seller is approved (if seller role)
+  const sellerUser = await User.findById(seller);
+  if (sellerUser && sellerUser.role === 'Seller' && !sellerUser.isApproved) {
+    return sendResponse(
+      res,
+      403,
+      false,
+      { error: "Seller account not approved. Please wait for admin approval." },
+      null,
+      null
+    );
+  }
+
+  try {
+    const product = await Product.create({
+      name,
+      brand,
+      description,
+      category: categoryId, // Use the resolved categoryId (ObjectId)
+      inStockNum: parseInt(inStockNum),
+      image,
+      price: parseFloat(price),
+      seller,
+    });
+
+    return sendResponse(
+      res,
+      200,
+      true,
+      product,
+      null,
+      "Create new product successfully"
+    );
+  } catch (error) {
+    // Handle Mongoose validation errors
+    if (error.name === 'ValidationError') {
+      const errors = Object.values(error.errors).map(err => err.message);
+      return sendResponse(
+        res,
+        400,
+        false,
+        { error: "Validation error", details: errors },
+        null,
+        null
+      );
+    }
+    // Re-throw other errors to be caught by catchAsync
+    throw error;
+  }
 });
 
 productController.updateSingleProduct = catchAsync(async (req, res, next) => {
@@ -244,6 +394,42 @@ productController.deleteSingleProduct = catchAsync(async (req, res, next) => {
   // return sendResponse(res, 200, true, { products, totalPages }, null, "");
 
   return sendResponse(res, 200, true, null, null, "Delete Product successful");
+});
+
+productController.recommendedProductsHandler = catchAsync(async (req, res, next) => {
+  try {
+    const userId = req.userId;
+    const user = await User.findById(userId);
+    if (!user) {
+      return sendResponse(res, 404, false, null, null, "User not found");
+    }
+    // Call the core recommendation function
+    const tfProducts = await tfRecommendation.recommendForUser(userId);
+    const recommendations = tfProducts?.slice(0, 10) || [];
+    if (recommendations.length <= 2) {
+      // Fallback: top-rated products
+      const fallbackProducts = await Product.find({ rating: { $gte: 4 }, isDeleted: false })
+        .populate("seller")
+        .limit(10);
+      return sendResponse(res, 200, true, { products: fallbackProducts }, null, "Fallback: showing top-rated products");
+    }
+    return sendResponse(res, 200, true, { products: recommendations }, null, "Recommended products generated with TensorFlow");
+  } catch (error) {
+    console.error("TF Recommendation error:", error);
+    return sendResponse(res, 500, false, null, error, "Server error");
+  }
+});
+
+productController.getTodaysDeals = catchAsync(async (req, res, next) => {
+  try {
+    const deals = await getTodaysDeals();
+    const enhancedDeals = enhanceProductsWithDiscounts(deals);
+    
+    return sendResponse(res, 200, true, { products: enhancedDeals }, null, "Today's deals retrieved successfully");
+  } catch (error) {
+    console.error("Get today's deals error:", error);
+    return sendResponse(res, 500, false, null, error, "Server error");
+  }
 });
 
 module.exports = productController;

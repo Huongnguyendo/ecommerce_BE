@@ -22,6 +22,13 @@ const userSchema = Schema(
       enum: ["User", "Admin", "Seller", "Shipper"],
       // required: true,
     },
+    isApproved: {
+      type: Boolean,
+      default: function() {
+        // Sellers need approval, other roles are auto-approved
+        return this.role !== "Seller";
+      }
+    },
     // seller: { type: Schema.ObjectId, ref: "Seller" },
     sellingHistory: [
       {
@@ -46,7 +53,23 @@ const userSchema = Schema(
         ],
       },
     ],
-    isDeleted: { type: Boolean, default: false, select: false },
+    isActive: { type: Boolean, default: true }, // Active/Inactive status (can be toggled)
+    isDeleted: { type: Boolean, default: false, select: false }, // Permanent deletion (soft delete)
+    wishlist: [{ type: Schema.Types.ObjectId, ref: "Product" }],
+    preferences: {
+      categories: [{ type: Schema.Types.ObjectId, ref: "Category" }],
+    },
+    interactions: [
+      {
+        productId: { type: Schema.Types.ObjectId, ref: "Product" },
+        type: { type: String, enum: ["view", "cart", "rating", "buy"] },
+        timestamp: { type: Date, default: Date.now },
+        category: { type: Schema.Types.ObjectId, ref: "Category" }, // Add category ID
+        categoryName: { type: String }, // Add category name for debugging
+      },
+    ],
+    recentViews: [{ type: Schema.Types.ObjectId, ref: "Product" }],
+    recentSearches: [{ type: String }],
     // cart: [{type: Schema.Types.ObjectId,
     //   ref: "Product"}]
   },
@@ -63,7 +86,8 @@ userSchema.plugin(require("./plugins/isDeletedFalse"));
 userSchema.methods.toJSON = function () {
   const obj = this._doc;
   delete obj.password;
-  delete obj.isDeleted;
+  delete obj.isDeleted; // Hide isDeleted from JSON (soft delete field)
+  // Keep isActive in JSON so frontend can check account status
   return obj;
 };
 
