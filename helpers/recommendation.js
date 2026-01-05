@@ -1,4 +1,24 @@
-const tf = require('@tensorflow/tfjs-node');
+// Lazy load TensorFlow to reduce bundle size (only load when needed)
+let tf = null;
+const loadTensorFlow = async () => {
+  if (!tf) {
+    try {
+      // Use @tensorflow/tfjs (lighter, ~2MB vs ~150MB)
+      tf = require('@tensorflow/tfjs');
+      
+      // Set backend to 'cpu' for Node.js (required for server-side)
+      await tf.setBackend('cpu');
+      await tf.ready();
+      
+      console.log('TensorFlow.js loaded with CPU backend');
+    } catch (error) {
+      console.warn('TensorFlow not available, using fallback recommendations. Error:', error.message);
+      return null;
+    }
+  }
+  return tf;
+};
+
 const User = require('../models/user');
 const Product = require('../models/product');
 const Category = require('../models/category');
@@ -262,32 +282,35 @@ async function recommendForUser(userId) {
       return [...v, ...zeros];
     });
 
-    // Compute cosine similarity using TensorFlow.js
-    try {
-      console.log('Starting TensorFlow.js calculation...');
-      console.log('User vector length:', userVectorArr.length);
-      console.log('Product vectors count:', paddedProductVectors.length);
-      console.log('First product vector length:', paddedProductVectors[0]?.length);
+    // Compute cosine similarity using TensorFlow.js (if available)
+    const tfModule = await loadTensorFlow();
+    
+    if (tfModule) {
+      try {
+        console.log('Starting TensorFlow.js calculation...');
+        console.log('User vector length:', userVectorArr.length);
+        console.log('Product vectors count:', paddedProductVectors.length);
+        console.log('First product vector length:', paddedProductVectors[0]?.length);
+        
+        const userTensor = tfModule.tensor1d(userVectorArr);
+        console.log('User tensor created successfully');
+        
+        const paddedProductTensor = tfModule.tensor2d(paddedProductVectors);
+        console.log('Product tensor created successfully');
       
-      const userTensor = tf.tensor1d(userVectorArr);
-      console.log('User tensor created successfully');
-      
-      const paddedProductTensor = tf.tensor2d(paddedProductVectors);
-      console.log('Product tensor created successfully');
-      
-      const userNorm = userTensor.norm();
-      console.log('User norm calculated:', userNorm.arraySync());
-      
-      const productNorms = paddedProductTensor.norm("euclidean", 1);
-      console.log('Product norms calculated, first few:', productNorms.arraySync().slice(0, 5));
-      
-      const dotProds = paddedProductTensor
-        .matMul(userTensor.expandDims(1))
-        .reshape([-1]);
-      console.log('Dot products calculated, first few:', dotProds.arraySync().slice(0, 5));
-      
-      const cosineSims = dotProds.div(productNorms.mul(userNorm));
-      const scores = cosineSims.arraySync();
+        const userNorm = userTensor.norm();
+        console.log('User norm calculated:', userNorm.arraySync());
+        
+        const productNorms = paddedProductTensor.norm("euclidean", 1);
+        console.log('Product norms calculated, first few:', productNorms.arraySync().slice(0, 5));
+        
+        const dotProds = paddedProductTensor
+          .matMul(userTensor.expandDims(1))
+          .reshape([-1]);
+        console.log('Dot products calculated, first few:', dotProds.arraySync().slice(0, 5));
+        
+        const cosineSims = dotProds.div(productNorms.mul(userNorm));
+        const scores = cosineSims.arraySync();
 
       console.log('Cosine similarity scores calculated, scores range:', Math.min(...scores), 'to', Math.max(...scores));
       console.log('First 5 scores:', scores.slice(0, 5));
@@ -381,6 +404,53 @@ async function recommendForUser(userId) {
       console.log('Fallback recommendations count:', fallbackRecommendations.length);
       console.log('Fallback top score:', scoredProducts[0]?.score);
       
+      return fallbackRecommendations;
+      }
+    } else {
+      // TensorFlow not available, use simple scoring
+      console.log('TensorFlow not available, using simple scoring system...');
+      const scores = [];
+      for (let i = 0; i < products.length; i++) {
+        const product = products[i];
+        let score = 0;
+        
+        if (product.rating) {
+          score += (product.rating / 5) * 10;
+        }
+        
+        const productCategoryId = product.category?._id?.toString();
+        if (productCategoryId) {
+          user.interactions.forEach(interaction => {
+            if (interaction.productId?.category?._id?.toString() === productCategoryId) {
+              score += INTERACTION_SCORES[interaction.type] || 0;
+            }
+          });
+        }
+        
+        score += Math.random() * 2.0;
+        scores.push(score);
+      }
+      
+      // Filter and return
+      const interactedIds = new Set(
+        user.interactions
+          .filter(i => i.productId && i.productId._id)
+          .map((i) => i.productId._id.toString())
+      );
+      
+      const scoredProducts = [];
+      for (let i = 0; i < products.length; i++) {
+        if (interactedIds.has(products[i]._id.toString())) continue;
+        scoredProducts.push({
+          product: products[i],
+          score: scores[i] || 0
+        });
+      }
+      
+      scoredProducts.sort((a, b) => b.score - a.score);
+      const fallbackRecommendations = scoredProducts.slice(0, 10).map((p) => p.product);
+      
+      console.log('Fallback recommendations count:', fallbackRecommendations.length);
       return fallbackRecommendations;
     }
     
