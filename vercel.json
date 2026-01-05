@@ -3,13 +3,13 @@
     "routes": [
       {
         "src": "/(.*)",
-        "dest": "app.js"
+        "dest": "/api/index.js"
       }
     ],
     "functions": {
-      "app.js": {
+      "api/index.js": {
         "maxDuration": 30,
-        "memory": 3008
+        "memory": 1024
       }
     }
 }
