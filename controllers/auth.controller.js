@@ -23,6 +23,18 @@ authController.loginWithEmail = catchAsync(async (req, res, next) => {
       null
     );
 
+  // Check if user account is active (inactive users cannot log in)
+  if (user.isActive === false) {
+    return sendResponse(
+      res,
+      403,
+      false,
+      { error: "Your account has been deactivated. Please contact an administrator." },
+      null,
+      null
+    );
+  }
+
   // after had had user, compare raw password and hash password
   const isMatch = await bcrypt.compare(password, user.password);
   if (!isMatch)
@@ -42,7 +54,7 @@ authController.loginWithEmail = catchAsync(async (req, res, next) => {
   accessToken = await user.generateToken();
 
   // newly added
-  next();
+  // next();
 
   // req.userId = user._id;
   return sendResponse(
@@ -68,6 +80,18 @@ authController.loginWithFacebookOrGoogle = catchAsync(
 
     // if the email exists in the database
     if (user) {
+      // Check if user account is active (inactive users cannot log in)
+      if (user.isActive === false) {
+        return sendResponse(
+          res,
+          403,
+          false,
+          { error: "Your account has been deactivated. Please contact an administrator." },
+          null,
+          null
+        );
+      }
+      
       // if email not yet verified, update verification status to true
       if (!user.emailVerified) {
         user = await User.findByIdAndUpdate(

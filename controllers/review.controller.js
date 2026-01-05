@@ -19,7 +19,7 @@ reviewController.createNewReview = catchAsync(async (req, res, next) => {
   //   return new AppError(400, "User need to verify email first!");
   // }
 
-  const product = Product.findById(productId);
+  const product = await Product.findById(productId);
   if (!product)
     // return next(
     //   new AppError(404, "Product Not Found", "Create New Review Error")
@@ -28,7 +28,7 @@ reviewController.createNewReview = catchAsync(async (req, res, next) => {
       res,
       404,
       false,
-      { error: "Create New Review Error" },
+      { error: "Product Not Found" },
       null,
       null
     );
@@ -55,16 +55,16 @@ reviewController.getReviewsOfProduct = catchAsync(async (req, res, next) => {
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 10;
 
-  const product = Product.findById(productId);
+  const product = await Product.findById(productId);
   if (!product)
     // return next(
-    //   new AppError(404, "Product Not Found", "Create New Review Error")
+    //   new AppError(404, "Product Not Found", "Get Reviews Error")
     // );
     return sendResponse(
       res,
       404,
       false,
-      { error: "Create New Review Error" },
+      { error: "Product Not Found" },
       null,
       null
     );

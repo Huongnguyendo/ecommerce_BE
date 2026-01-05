@@ -30,6 +30,9 @@ router.get('/history',
 authMiddleware.loginRequired, 
 userController.getBuyingHistory);
 
+router.get('/me/recent-views', authMiddleware.loginRequired, userController.getRecentViews);
+router.get('/me/recent-searches', authMiddleware.loginRequired, userController.getRecentSearches);
+
 
 router.put("/", authMiddleware.loginRequired, userController.updateProfile);
 
@@ -42,12 +45,21 @@ router.put("/", authMiddleware.loginRequired, userController.updateProfile);
 router.get("/me", authMiddleware.loginRequired, userController.getCurrentUser);
 
 
-
 /**
  * @route GET api/users?page=1&limit=10
  * @description Get users with pagination
  * @access Login required
  */
 router.get("/", authMiddleware.loginRequired, userController.getUsers);
+
+// Wishlist endpoints
+router.post('/wishlist/add', authMiddleware.loginRequired, userController.addToWishlist);
+router.post('/wishlist/remove', authMiddleware.loginRequired, userController.removeFromWishlist);
+router.get('/wishlist', authMiddleware.loginRequired, userController.getWishlist);
+
+// Seller approval endpoints (Admin only)
+router.get('/sellers', authMiddleware.loginRequired, userController.getSellersForApproval);
+router.put('/sellers/:sellerId/approve', authMiddleware.loginRequired, userController.approveSeller);
+router.put('/sellers/:sellerId/reject', authMiddleware.loginRequired, userController.rejectSeller);
 
 module.exports = router;

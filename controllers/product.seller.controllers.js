@@ -7,6 +7,7 @@ const Product = require("../models/product");
 const Review = require("../models/review");
 const User = require("../models/user");
 const Seller = require("../models/seller");
+const { extractCategoryName } = require("../utils/dataTransformers");
 const productSellerController = {};
 
 productSellerController.getSingleProductForSeller = catchAsync(
@@ -54,7 +55,21 @@ productSellerController.getAllProductsForSeller = catchAsync(
     // let product = await Product.findById(req.params.id).populate("seller").populate("user");
     let user = req.userId;
 
-    const products = await Product.find({ seller: user, isDeleted: false });
+    // Check if seller is approved
+    const sellerUser = await User.findById(user);
+    if (!sellerUser || !sellerUser.isApproved) {
+      return sendResponse(
+        res,
+        403,
+        false,
+        { error: "Seller account not approved. Please wait for admin approval." },
+        null,
+        null
+      );
+    }
+
+    const products = await Product.find({ seller: user, isDeleted: false })
+      .populate("category", "name");
 
     if (!products)
       // return next(new AppError(404, "Product not found", "Get Product Error"));
@@ -74,19 +89,91 @@ productSellerController.getAllProductsForSeller = catchAsync(
 
 productSellerController.getHistoryForSeller = catchAsync(
   async (req, res, next) => {
-    // let product = await Product.findById(req.params.id).populate("seller").populate("user");
     let userId = req.userId;
-    let user = await User.findById(userId)
-      .populate({ path: "sellingHistory.product" })
-      .populate({ path: "sellingHistory.history.buyer" });
+    
+    // Query user with explicit isDeleted check to bypass plugin filtering
+    let user = await User.findOne({ _id: userId, isDeleted: { $in: [true, false] } })
+      .lean();
 
-    return sendResponse(res, 200, true, user.sellingHistory, null, null);
+    if (!user) {
+      return sendResponse(
+        res,
+        404,
+        false,
+        { error: "User not found" },
+        null,
+        null
+      );
+    }
+
+    // Manually populate products and buyers, including deleted ones
+    const sellingHistory = user.sellingHistory || [];
+    const populatedHistory = await Promise.all(
+      sellingHistory.map(async (item) => {
+        // Populate product (including deleted products)
+        const product = await Product.findOne({ 
+          _id: item.product,
+          isDeleted: { $in: [true, false] }
+        })
+          .populate("category", "name")
+          .lean();
+
+        // Populate buyers for each history entry
+        const populatedHistoryItems = await Promise.all(
+          (item.history || []).map(async (historyItem) => {
+            const buyer = await User.findOne({ 
+              _id: historyItem.buyer,
+              isDeleted: { $in: [true, false] }
+            })
+              .select("name email")
+              .lean();
+
+            return {
+              ...historyItem,
+              buyer: buyer || { _id: historyItem.buyer, name: 'Deleted User', email: '' }
+            };
+          })
+        );
+
+        return {
+          ...item,
+          product: product ? {
+            ...product,
+            category: extractCategoryName(product.category)
+          } : {
+            _id: item.product,
+            name: 'Product Deleted',
+            image: '',
+            category: 'N/A',
+            brand: 'N/A',
+            isDeleted: true
+          },
+          history: populatedHistoryItems
+        };
+      })
+    );
+
+    return sendResponse(res, 200, true, populatedHistory, null, null);
   }
 );
 
 productSellerController.createNewProduct = catchAsync(
   async (req, res, next) => {
     const seller = req.userId;
+    
+    // Check if seller is approved
+    const sellerUser = await User.findById(seller);
+    if (!sellerUser || !sellerUser.isApproved) {
+      return sendResponse(
+        res,
+        403,
+        false,
+        { error: "Seller account not approved. Please wait for admin approval." },
+        null,
+        null
+      );
+    }
+    
     const { name, brand, description, category, inStockNum, image, price } =
       req.body;
     const product = await Product.create({
@@ -135,7 +222,7 @@ productSellerController.updateSingleProduct = catchAsync(
         res,
         400,
         false,
-        { error: "Product not found or User not authorizedd" },
+        { error: "Product not found or User not authorized" },
         null,
         null
       );

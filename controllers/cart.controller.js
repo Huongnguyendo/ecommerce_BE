@@ -76,7 +76,14 @@ cartController.checkoutCart = catchAsync(async (req, res) => {
   for (let item of cart.cartItems) {
     const product = await Product.findById(item.product._id);
     if (product.inStockNum < item.quantity) {
-      return sendResponse(res, 400, false, null, null, "Stock limit exceeded");
+      return sendResponse(
+        res,
+        400,
+        false,
+        null,
+        null,
+        `Sorry, "${product.name}" only has ${product.inStockNum} left in stock. Please adjust your cart.`
+      );
     }
   }
 
@@ -109,9 +116,49 @@ cartController.checkoutCart = catchAsync(async (req, res) => {
   }
 
   cart.isCheckedout = true;
-  cart.save();
+  await cart.save();
+
+  // Add interactions to user
+  const user = await User.findById(req.userId);
+  if (user) {
+    for (let item of cart.cartItems) {
+      // Get the full product to access its category
+      const product = await Product.findById(item.product._id).populate('category');
+      
+      user.interactions = user.interactions || [];
+      user.interactions.push({
+        productId: item.product._id,
+        type: 'buy',
+        timestamp: new Date(),
+        category: product.category?._id, // Save the category ID
+        categoryName: product.category?.name // Save the category name for debugging
+      });
+    }
+    await user.save();
+  }
 
   return sendResponse(res, 200, true, cart, null, "");
+});
+
+cartController.updateCartItemQuantity = catchAsync(async (req, res, next) => {
+  const { productId, quantity } = req.body;
+  let cart = await Cart.findOne({ user: req.userId, isCheckedout: false }).populate({ path: "cartItems.product" });
+  if (!cart) {
+    return sendResponse(res, 404, false, null, null, "Cart not found");
+  }
+  let itemIndex = cart.cartItems.findIndex(
+    (item) => item && item.product._id.toString() === productId
+  );
+  if (itemIndex === -1) {
+    return sendResponse(res, 404, false, null, null, "Product not found in cart");
+  }
+  if (quantity > 0) {
+    cart.cartItems[itemIndex].quantity = quantity;
+  } else {
+    cart.cartItems.splice(itemIndex, 1);
+  }
+  await cart.save();
+  return sendResponse(res, 200, true, cart, null, "Cart updated");
 });
 
 module.exports = cartController;

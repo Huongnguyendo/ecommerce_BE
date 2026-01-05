@@ -52,7 +52,13 @@ router.post(
 
 
 /* ADMIN */
-// get admin dashboard
+// get admin dashboard stats
+router.get(
+  "/admin/dashboard",
+  authMiddleware.loginRequired,
+  authMiddleware.isAdmin,
+  userController.getAdminDashboardStats
+);
 
 // see all users
 router.get(
@@ -78,6 +84,14 @@ router.delete(
   authMiddleware.loginRequired,
   authMiddleware.isAdmin,
   userController.deleteUser
+);
+
+// update a user (for admin)
+router.put(
+  "/admin/user/:id",
+  authMiddleware.loginRequired,
+  authMiddleware.isAdmin,
+  userController.updateUserForAdmin
 );
 
 // delete a product

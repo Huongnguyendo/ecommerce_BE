@@ -30,6 +30,18 @@ router.use("/category", categoryApi);
 const reviewApi = require("./review.api");
 router.use("/reviews", reviewApi);
 
+// recommendationApi
+const recommendationApi = require("./recommendation.api");
+router.use("/recommendations", recommendationApi);
+
+// chatbotApi
+const chatbotApi = require("./chatbot.api");
+router.use("/chatbot", chatbotApi);
+
+// orderApi
+const orderApi = require("./order.api");
+router.use("/orders", orderApi);
+
 // stripeApi
 const stripeApi = require("./stripe.api");
 router.use("/stripe", stripeApi);

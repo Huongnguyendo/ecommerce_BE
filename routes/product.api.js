@@ -18,27 +18,29 @@ const { body, param } = require("express-validator");
 router.get("/", productController.getProducts);
 
 /**
- * @route GET api/blogs/:id
- * @description Get a single blog
+ * @route GET api/products/deals
+ * @description Get today's deals
  * @access Public
  */
 router.get(
+  "/deals",
+  productController.getTodaysDeals
+);
+
+/**
+ * @route GET api/blogs/:id
+ * @description Get a single blog
+ * @access Public (but attach user if exists to record recent views)
+ */
+router.get(
   "/:id",
+  authMiddleware.attachUserIfExists,
   validators.validate([
     param("id").exists().isString().custom(validators.checkObjectId),
   ]),
   productController.getSingleProduct
 );
 
-router.route('/')
-    .post(
-    //   validators.validate([
-    //   body("keyword", "Missing keyword").exists().notEmpty(),
-    // ]),
-      productController.getProductsByKeyword)
-
-router.route('/')
-      .post(productController.getProductsWithCategory)
 
 /**
  * @route POST api/products
@@ -102,6 +104,12 @@ router.delete(
     param("id").exists().isString().custom(validators.checkObjectId),
   ]),
   productController.deleteSingleProduct
+);
+
+router.get(
+  "/recommended",
+  authMiddleware.loginRequired,
+  productController.recommendedProductsHandler
 );
   
 // 4. export
