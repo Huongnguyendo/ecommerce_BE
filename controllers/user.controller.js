@@ -12,7 +12,24 @@ const userController = {};
 
 userController.register = catchAsync(async (req, res, next) => {
   let { name, email, avatarUrl, password, role } = req.body;
-  let user = await User.findOne({ email });
+  
+  // Normalize email to lowercase for consistent storage and lookup
+  const normalizedEmail = email ? email.toLowerCase().trim() : '';
+  
+  if (!normalizedEmail) {
+    return sendResponse(
+      res,
+      400,
+      false,
+      { error: "Email is required" },
+      null,
+      null
+    );
+  }
+  
+  // Check if user exists (case-insensitive search to prevent duplicates with different casing)
+  const emailRegex = new RegExp(`^${normalizedEmail.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i');
+  let user = await User.findOne({ email: emailRegex });
   if (user)
     // return next(new AppError(409, "User already exists", "Register Error"));
     return sendResponse(
@@ -28,7 +45,7 @@ userController.register = catchAsync(async (req, res, next) => {
   password = await bcrypt.hash(password, salt);
   user = await User.create({
     name,
-    email,
+    email: normalizedEmail, // Store normalized email
     password,
     avatarUrl,
     role,
