@@ -4,11 +4,4 @@ node_modules/
 *lock.json
 build
 .env
-config/
-*.log
-server.log
-logs/
-*.md
-!README.md
-!readme.md
 scripts/

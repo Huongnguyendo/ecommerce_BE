@@ -92,6 +92,9 @@ userSchema.methods.toJSON = function () {
 };
 
 userSchema.methods.generateToken = async function () {
+  if (!JWT_SECRET_KEY) {
+    throw new Error("JWT_SECRET_KEY environment variable is not set. Please configure it in your environment variables.");
+  }
   const accessToken = await jwt.sign({ _id: this._id }, JWT_SECRET_KEY, {
     expiresIn: "10d",
   });

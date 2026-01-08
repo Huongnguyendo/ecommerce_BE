@@ -14,6 +14,11 @@ authMiddleware.attachUserIfExists = async (req, res, next) => {
     
     const token = tokenString.replace("Bearer ", "");
     
+    if (!JWT_SECRET_KEY) {
+      console.error("JWT_SECRET_KEY environment variable is not set");
+      return next();
+    }
+    
     jwt.verify(token, JWT_SECRET_KEY, (err, decodedPayload) => {
       if (err) {
         // Token is invalid or expired, continue without setting userId
