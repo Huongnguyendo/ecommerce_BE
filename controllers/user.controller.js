@@ -12,7 +12,24 @@ const userController = {};
 
 userController.register = catchAsync(async (req, res, next) => {
   let { name, email, avatarUrl, password, role } = req.body;
-  let user = await User.findOne({ email });
+  
+  // Normalize email to lowercase for consistent storage and lookup
+  const normalizedEmail = email ? email.toLowerCase().trim() : '';
+  
+  if (!normalizedEmail) {
+    return sendResponse(
+      res,
+      400,
+      false,
+      { error: "Email is required" },
+      null,
+      null
+    );
+  }
+  
+  // Check if user exists (case-insensitive search to prevent duplicates with different casing)
+  const emailRegex = new RegExp(`^${normalizedEmail.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i');
+  let user = await User.findOne({ email: emailRegex });
   if (user)
     // return next(new AppError(409, "User already exists", "Register Error"));
     return sendResponse(
@@ -28,7 +45,7 @@ userController.register = catchAsync(async (req, res, next) => {
   password = await bcrypt.hash(password, salt);
   user = await User.create({
     name,
-    email,
+    email: normalizedEmail, // Store normalized email
     password,
     avatarUrl,
     role,
@@ -223,25 +240,77 @@ userController.addToWishlist = catchAsync(async (req, res, next) => {
     user.wishlist.push(productId);
     await user.save();
   }
+  // Return updated wishlist IDs only (frontend will handle optimistic updates)
   return sendResponse(res, 200, true, user.wishlist, null, "Added to wishlist");
 });
 
 userController.removeFromWishlist = catchAsync(async (req, res, next) => {
   const userId = req.userId;
   const { productId } = req.body;
-  if (!productId) return sendResponse(res, 400, false, null, null, "Product ID required");
+  
+  if (!productId) {
+    return sendResponse(res, 400, false, { error: "Product ID is required" }, null, "Product ID required");
+  }
+  
+  // Normalize productId to string for consistent comparison
+  const productIdStr = String(productId).trim();
+  
   const user = await User.findById(userId);
-  if (!user) return sendResponse(res, 404, false, null, null, "User not found");
-  user.wishlist = user.wishlist.filter(id => id.toString() !== productId);
-  await user.save();
+  if (!user) {
+    return sendResponse(res, 404, false, { error: "User not found" }, null, "User not found");
+  }
+  
+  // Filter out the product ID, handling both ObjectId and string comparisons
+  const originalLength = user.wishlist.length;
+  user.wishlist = user.wishlist.filter(id => {
+    const idStr = id ? id.toString() : '';
+    return idStr !== productIdStr;
+  });
+  
+  // Only save if something actually changed
+  if (user.wishlist.length !== originalLength) {
+    await user.save();
+  }
+  
+  // Return updated wishlist IDs only (frontend will handle optimistic updates)
   return sendResponse(res, 200, true, user.wishlist, null, "Removed from wishlist");
 });
 
 userController.getWishlist = catchAsync(async (req, res, next) => {
   const userId = req.userId;
-  const user = await User.findById(userId).populate('wishlist');
+  const user = await User.findById(userId).populate({
+    path: 'wishlist',
+    match: { isDeleted: false } // Only populate non-deleted products
+  });
   if (!user) return sendResponse(res, 404, false, null, null, "User not found");
-  return sendResponse(res, 200, true, user.wishlist, null, "Fetched wishlist");
+  
+  // Filter out null values (products that were deleted or don't exist)
+  // populate with match returns null for products that don't match the condition
+  const validWishlist = (user.wishlist || []).filter(product => {
+    // Remove null/undefined (deleted products that populate couldn't find)
+    if (!product) return false;
+    // Ensure _id exists (should always exist, but safety check)
+    return product._id != null;
+  });
+  
+  // Convert to plain objects for consistent serialization
+  // This ensures _id is always properly serialized as a string in JSON
+  const wishlistProducts = validWishlist.map(product => {
+    // Convert Mongoose document to plain object for consistent serialization
+    if (product && typeof product.toObject === 'function') {
+      return product.toObject();
+    }
+    return product;
+  });
+  
+  // If there were null values, clean up the user's wishlist
+  if (validWishlist.length !== (user.wishlist || []).length) {
+    const validProductIds = wishlistProducts.map(p => p._id);
+    user.wishlist = validProductIds;
+    await user.save();
+  }
+  
+  return sendResponse(res, 200, true, wishlistProducts, null, "Fetched wishlist");
 });
 
 userController.getRecentViews = catchAsync(async (req, res, next) => {

@@ -9,21 +9,38 @@ const authController = {};
 
 authController.loginWithEmail = catchAsync(async (req, res, next) => {
   const { email, password } = req.body;
-  // create an instance user of class User
-  const user = await User.findOne({ email }, "+password");
-  if (!user)
-    // return next(new AppError(400, "Invalid credentials", "Login Error"));
-
+  
+  // Normalize email to lowercase for consistent lookup
+  const normalizedEmail = email ? email.toLowerCase().trim() : '';
+  
+  if (!normalizedEmail || !password) {
+    return sendResponse(
+      res,
+      400,
+      false,
+      { error: "Email and password are required" },
+      null,
+      null
+    );
+  }
+  
+  // Let the isDeletedFalse plugin handle isDeleted filtering automatically
+  // Don't explicitly set isDeleted to avoid conflicts with the plugin
+  const user = await User.findOne({ email: normalizedEmail }, "+password");
+  
+  if (!user) {
     return sendResponse(
       res,
       400,
       false,
       { error: "Invalid credentials" },
-      { error: "Login Error" },
+      null,
       null
     );
+  }
 
   // Check if user account is active (inactive users cannot log in)
+  // Only block if explicitly false, treat undefined/null as active
   if (user.isActive === false) {
     return sendResponse(
       res,
