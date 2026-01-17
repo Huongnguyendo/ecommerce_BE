@@ -8,6 +8,7 @@ const Cart = require("../models/cart");
 const bcrypt = require("bcryptjs");
 const Product = require("../models/product");
 const Order = require("../models/order");
+const { enhanceProductsWithDiscounts } = require("../helpers/product.helper");
 const userController = {};
 
 userController.register = catchAsync(async (req, res, next) => {
@@ -278,39 +279,31 @@ userController.removeFromWishlist = catchAsync(async (req, res, next) => {
 
 userController.getWishlist = catchAsync(async (req, res, next) => {
   const userId = req.userId;
-  const user = await User.findById(userId).populate({
-    path: 'wishlist',
-    match: { isDeleted: false } // Only populate non-deleted products
-  });
+  // Use lean() and select only wishlist field for faster query
+  const user = await User.findById(userId).select('wishlist').lean();
   if (!user) return sendResponse(res, 404, false, null, null, "User not found");
   
-  // Filter out null values (products that were deleted or don't exist)
-  // populate with match returns null for products that don't match the condition
-  const validWishlist = (user.wishlist || []).filter(product => {
-    // Remove null/undefined (deleted products that populate couldn't find)
-    if (!product) return false;
-    // Ensure _id exists (should always exist, but safety check)
-    return product._id != null;
-  });
-  
-  // Convert to plain objects for consistent serialization
-  // This ensures _id is always properly serialized as a string in JSON
-  const wishlistProducts = validWishlist.map(product => {
-    // Convert Mongoose document to plain object for consistent serialization
-    if (product && typeof product.toObject === 'function') {
-      return product.toObject();
-    }
-    return product;
-  });
-  
-  // If there were null values, clean up the user's wishlist
-  if (validWishlist.length !== (user.wishlist || []).length) {
-    const validProductIds = wishlistProducts.map(p => p._id);
-    user.wishlist = validProductIds;
-    await user.save();
+  const wishlistIds = user.wishlist || [];
+  if (wishlistIds.length === 0) {
+    return sendResponse(res, 200, true, [], null, "Fetched wishlist");
   }
   
-  return sendResponse(res, 200, true, wishlistProducts, null, "Fetched wishlist");
+  // Manually fetch products with lean() - faster than populate
+  const products = await Product.find({
+    _id: { $in: wishlistIds },
+    isDeleted: false
+  }).lean();
+  
+  // Enhance with discount info
+  const enhancedProducts = enhanceProductsWithDiscounts(products);
+  
+  // Clean up wishlist if some products were deleted
+  if (products.length !== wishlistIds.length) {
+    const validProductIds = products.map(p => p._id);
+    await User.findByIdAndUpdate(userId, { wishlist: validProductIds });
+  }
+  
+  return sendResponse(res, 200, true, enhancedProducts, null, "Fetched wishlist");
 });
 
 userController.getRecentViews = catchAsync(async (req, res, next) => {
