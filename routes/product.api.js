@@ -33,6 +33,14 @@ router.get(
  * @access Public (but attach user if exists to record recent views)
  */
 router.get(
+  "/:id/reviews",
+  validators.validate([
+    param("id").exists().isString().custom(validators.checkObjectId),
+  ]),
+  productController.getProductReviews
+);
+
+router.get(
   "/:id",
   authMiddleware.attachUserIfExists,
   validators.validate([

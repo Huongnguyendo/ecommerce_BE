@@ -11,66 +11,27 @@ const productController = {};
 const tfRecommendation = require("../helpers/tfrecommendation.js");
 const mongoose = require("mongoose");
 const Category = require("../models/category");
-const { getEffectivePrice, hasActiveDiscount, getTodaysDeals } = require("../helpers/discount.helper");
+const { getTodaysDeals } = require("../helpers/discount.helper");
+const { enhanceProductsWithDiscounts } = require("../helpers/product.helper");
 
-// Helper function to enhance products with discount information
-function enhanceProductsWithDiscounts(products) {
-  const now = new Date();
-  
-  return products.map(product => {
-    const productObj = product.toObject ? product.toObject() : product;
-    const effectivePrice = getEffectivePrice(productObj);
-    
-    // Check if discount is active using the helper function
-    const isDiscountActive = hasActiveDiscount(productObj);
-    
-    // Also check manually for products with discountPercent > 0
-    const hasDiscountPercent = productObj.discountPercent > 0 && 
-                                productObj.discountExpiresAt && 
-                                new Date(productObj.discountExpiresAt) > now;
-    
-    // Calculate discount amount
-    const calculatedDiscount = productObj.price - effectivePrice;
-    const discountAmount = (isDiscountActive || hasDiscountPercent) ? calculatedDiscount : 0;
-    
-    // For products with discountPercent > 0, always set hasDiscount to true
-    // This ensures Today's Deals always show discount info
-    const hasDiscount = isDiscountActive || hasDiscountPercent || (productObj.discountPercent > 0);
-    
-    return {
-      ...productObj,
-      effectivePrice: (isDiscountActive || hasDiscountPercent) ? effectivePrice : productObj.price,
-      hasDiscount: hasDiscount,
-      originalPrice: productObj.price,
-      discountAmount: discountAmount > 0 ? discountAmount : 0,
-      // Ensure discountPercent is included
-      discountPercent: productObj.discountPercent || 0
-    };
-  });
-}
 
 productController.getProducts = catchAsync(async (req, res, next) => {
   let { page, limit, sortBy, category, search, ...filter } = { ...req.query };
   page = parseInt(page) || 1;
   limit = parseInt(limit) || 10;
 
-  // Record recent search (non-empty) for authenticated users
-  try {
-    const q = (search || '').trim();
-    if (req.userId && q && q.length >= 2) {
-      const user = await User.findById(req.userId);
+  // Record recent search (non-blocking for performance)
+  const q = (search || '').trim();
+  if (req.userId && q && q.length >= 2) {
+    User.findById(req.userId).then(user => {
       if (user) {
         user.recentSearches = user.recentSearches || [];
-        // remove existing
         user.recentSearches = user.recentSearches.filter(s => s.toLowerCase() !== q.toLowerCase());
-        // unshift
         user.recentSearches.unshift(q);
         if (user.recentSearches.length > 20) user.recentSearches = user.recentSearches.slice(0, 20);
-        await user.save();
+        user.save().catch(() => {}); // Non-blocking
       }
-    }
-  } catch (e) {
-    // Silently handle error
+    }).catch(() => {}); // Silently handle error
   }
 
   // Search filter: search in name, description, and brand
@@ -115,7 +76,8 @@ productController.getProducts = catchAsync(async (req, res, next) => {
     // .sort({ ...sortBy, createdAt: -1 })
     .skip(offset)
     .limit(limit)
-    .populate("seller");
+    .populate("seller", "name email avatarUrl")
+    .lean();
   
   // Enhance products with discount information
   const enhancedProducts = enhanceProductsWithDiscounts(products);
@@ -124,9 +86,11 @@ productController.getProducts = catchAsync(async (req, res, next) => {
 });
 
 productController.getSingleProduct = catchAsync(async (req, res, next) => {
-  let product = await Product.findById(req.params.id)
-    .populate("seller")
-    .populate("user");
+  // Fetch product only (reviews are loaded separately for faster response)
+  const product = await Product.findById(req.params.id)
+    .populate("seller", "name email avatarUrl")
+    .lean();
+  
   if (!product)
     return sendResponse(
       res,
@@ -137,35 +101,34 @@ productController.getSingleProduct = catchAsync(async (req, res, next) => {
       null
     );
 
-  // Record recent view for authenticated users
-  try {
-    if (req.userId) {
-      const user = await User.findById(req.userId);
+  // Record recent view for authenticated users (non-blocking)
+  if (req.userId) {
+    User.findById(req.userId).then(user => {
       if (user) {
         user.recentViews = user.recentViews || [];
         const pid = product._id.toString();
-        // remove if exists
         user.recentViews = user.recentViews.filter(id => id.toString() !== pid);
-        // unshift to front
         user.recentViews.unshift(product._id);
-        // cap to 20
         if (user.recentViews.length > 20) user.recentViews = user.recentViews.slice(0, 20);
-        await user.save();
+        user.save().catch(() => {});
       }
-    }
-  } catch (e) {
-    // Silently handle error
+    }).catch(() => {});
   }
-
-  product = product.toJSON();
-  product.reviews = await Review.find({ product: product._id })
-    .populate("seller")
-    .populate("user");
   
   // Enhance product with discount information
   const enhancedProduct = enhanceProductsWithDiscounts([product])[0];
   
   return sendResponse(res, 200, true, enhancedProduct, null, null);
+});
+
+productController.getProductReviews = catchAsync(async (req, res, next) => {
+  const reviews = await Review.find({ product: req.params.id })
+    .populate("seller", "name email avatarUrl")
+    .populate("user", "name email avatarUrl")
+    .lean()
+    .limit(50);
+
+  return sendResponse(res, 200, true, reviews || [], null, null);
 });
 
 productController.getSingleProductForSeller = catchAsync(

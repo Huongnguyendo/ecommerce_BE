@@ -8,6 +8,7 @@ const Cart = require("../models/cart");
 const bcrypt = require("bcryptjs");
 const Product = require("../models/product");
 const Order = require("../models/order");
+const { enhanceProductsWithDiscounts } = require("../helpers/product.helper");
 const userController = {};
 
 userController.register = catchAsync(async (req, res, next) => {
@@ -240,25 +241,69 @@ userController.addToWishlist = catchAsync(async (req, res, next) => {
     user.wishlist.push(productId);
     await user.save();
   }
+  // Return updated wishlist IDs only (frontend will handle optimistic updates)
   return sendResponse(res, 200, true, user.wishlist, null, "Added to wishlist");
 });
 
 userController.removeFromWishlist = catchAsync(async (req, res, next) => {
   const userId = req.userId;
   const { productId } = req.body;
-  if (!productId) return sendResponse(res, 400, false, null, null, "Product ID required");
+  
+  if (!productId) {
+    return sendResponse(res, 400, false, { error: "Product ID is required" }, null, "Product ID required");
+  }
+  
+  // Normalize productId to string for consistent comparison
+  const productIdStr = String(productId).trim();
+  
   const user = await User.findById(userId);
-  if (!user) return sendResponse(res, 404, false, null, null, "User not found");
-  user.wishlist = user.wishlist.filter(id => id.toString() !== productId);
-  await user.save();
+  if (!user) {
+    return sendResponse(res, 404, false, { error: "User not found" }, null, "User not found");
+  }
+  
+  // Filter out the product ID, handling both ObjectId and string comparisons
+  const originalLength = user.wishlist.length;
+  user.wishlist = user.wishlist.filter(id => {
+    const idStr = id ? id.toString() : '';
+    return idStr !== productIdStr;
+  });
+  
+  // Only save if something actually changed
+  if (user.wishlist.length !== originalLength) {
+    await user.save();
+  }
+  
+  // Return updated wishlist IDs only (frontend will handle optimistic updates)
   return sendResponse(res, 200, true, user.wishlist, null, "Removed from wishlist");
 });
 
 userController.getWishlist = catchAsync(async (req, res, next) => {
   const userId = req.userId;
-  const user = await User.findById(userId).populate('wishlist');
+  // Use lean() and select only wishlist field for faster query
+  const user = await User.findById(userId).select('wishlist').lean();
   if (!user) return sendResponse(res, 404, false, null, null, "User not found");
-  return sendResponse(res, 200, true, user.wishlist, null, "Fetched wishlist");
+  
+  const wishlistIds = user.wishlist || [];
+  if (wishlistIds.length === 0) {
+    return sendResponse(res, 200, true, [], null, "Fetched wishlist");
+  }
+  
+  // Manually fetch products with lean() - faster than populate
+  const products = await Product.find({
+    _id: { $in: wishlistIds },
+    isDeleted: false
+  }).lean();
+  
+  // Enhance with discount info
+  const enhancedProducts = enhanceProductsWithDiscounts(products);
+  
+  // Clean up wishlist if some products were deleted
+  if (products.length !== wishlistIds.length) {
+    const validProductIds = products.map(p => p._id);
+    await User.findByIdAndUpdate(userId, { wishlist: validProductIds });
+  }
+  
+  return sendResponse(res, 200, true, enhancedProducts, null, "Fetched wishlist");
 });
 
 userController.getRecentViews = catchAsync(async (req, res, next) => {
