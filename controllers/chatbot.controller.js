@@ -35,11 +35,11 @@ const getHuggingFaceResponse = async (userMessage, conversationHistory = [], pro
     let responseText = "";
 
     // Build system message with product information if available
-    let systemMessage = "You are a helpful shopping assistant for an e-commerce website. Be friendly, concise, and helpful.";
+    let systemMessage = "You are a helpful shopping assistant for an e-commerce website. Be friendly, concise, and helpful. Keep replies short (2-4 sentences), avoid tables, and prefer plain text or short bullet points.";
     
     if (productData && productData.length > 0) {
-      const productList = productData.slice(0, 5).map((p, i) => 
-        `${i + 1}. ${p.name} - $${p.price}${p.description ? ' - ' + p.description.substring(0, 80) + '...' : ''}`
+      const productList = productData.slice(0, 5).map((p, i) =>
+        `${i + 1}. ${p.name} - $${p.price}${p.brand ? ` (${p.brand})` : ''}`
       ).join('\n');
       
       systemMessage += `\n\nIMPORTANT: The user is asking about products. Here are the products found in our store:\n${productList}\n\nPlease help the user with these specific products. If the user asks about a product, refer to the products listed above.`;
@@ -78,7 +78,18 @@ const getHuggingFaceResponse = async (userMessage, conversationHistory = [], pro
       
       // If we got a response, clean it up and return
       if (responseText && responseText.trim().length > 0) {
-        return responseText.trim();
+        let cleaned = responseText.trim();
+        if (cleaned.length > 800) {
+          const truncated = cleaned.slice(0, 800);
+          const lastStop = Math.max(
+            truncated.lastIndexOf("."),
+            truncated.lastIndexOf("!"),
+            truncated.lastIndexOf("?")
+          );
+          cleaned = (lastStop > 100 ? truncated.slice(0, lastStop + 1) : truncated).trim();
+          cleaned += " Ask if you'd like more details.";
+        }
+        return cleaned;
       }
     } catch (apiError) {
       // Log errors only in development or for debugging
