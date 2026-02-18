@@ -34,14 +34,34 @@ productController.getProducts = catchAsync(async (req, res, next) => {
     }).catch(() => {}); // Silently handle error
   }
 
-  // Search filter: search in name, description, and brand
+  // Search filter: split into tokens and require all tokens to match
   if (search && search.trim()) {
-    const searchTerm = search.trim();
-    filter.$or = [
-      { name: { $regex: searchTerm, $options: "i" } },
-      { description: { $regex: searchTerm, $options: "i" } },
-      { brand: { $regex: searchTerm, $options: "i" } },
-    ];
+    const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const tokens = search
+      .trim()
+      .split(/\s+/)
+      .map((token) => token.trim())
+      .filter(Boolean);
+
+    if (tokens.length === 1) {
+      const searchTerm = escapeRegex(tokens[0]);
+      filter.$or = [
+        { name: { $regex: searchTerm, $options: "i" } },
+        { description: { $regex: searchTerm, $options: "i" } },
+        { brand: { $regex: searchTerm, $options: "i" } },
+      ];
+    } else if (tokens.length > 1) {
+      filter.$and = tokens.map((token) => {
+        const searchTerm = escapeRegex(token);
+        return {
+          $or: [
+            { name: { $regex: searchTerm, $options: "i" } },
+            { description: { $regex: searchTerm, $options: "i" } },
+            { brand: { $regex: searchTerm, $options: "i" } },
+          ],
+        };
+      });
+    }
   }
 
   // Flexible category filter: support both ObjectId and name
