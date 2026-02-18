@@ -261,26 +261,25 @@ const getChatbotResponse = async (message, userId = null) => {
           .trim();
       }
       
+      const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
       // Further cleaning
       keywords = keywords.replace(/\s+/g, ' ').trim();
       
       if (keywords && keywords.length > 1) {
-        // Split keywords and search for each word
         const keywordsArray = keywords.split(' ').filter(k => k.length > 1);
+        const tokens = keywordsArray.map((token) => escapeRegex(token));
         
-        // Build flexible search query
+        // Require all tokens to match across name/description/brand
         const searchQuery = {
-          $or: [
-            // Exact match on full keywords
-            { name: { $regex: keywords, $options: 'i' } },
-            { description: { $regex: keywords, $options: 'i' } },
-            { brand: { $regex: keywords, $options: 'i' } },
-            // Match on individual keywords
-            ...keywordsArray.map(k => ({ name: { $regex: k, $options: 'i' } })),
-            ...keywordsArray.map(k => ({ description: { $regex: k, $options: 'i' } })),
-            ...keywordsArray.map(k => ({ brand: { $regex: k, $options: 'i' } })),
-          ],
-          isDeleted: false
+          $and: tokens.map((token) => ({
+            $or: [
+              { name: { $regex: token, $options: 'i' } },
+              { description: { $regex: token, $options: 'i' } },
+              { brand: { $regex: token, $options: 'i' } },
+            ],
+          })),
+          isDeleted: false,
         };
         
         const products = await Product.find(searchQuery).limit(10).select('name price description image brand category');
