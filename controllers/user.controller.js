@@ -102,12 +102,12 @@ userController.getUsers = catchAsync(async (req, res, next) => {
   page = parseInt(page) || 1;
   limit = parseInt(limit) || 10;
 
-  // For admin endpoints, include all users (active, inactive, and deleted)
-  // The isDeletedFalse plugin will auto-filter unless we explicitly set isDeleted
-  // So we set it to include both true and false values
+  // For admin endpoints, exclude deleted users by default.
+  // If includeDeleted=true is passed, include both deleted and non-deleted users.
+  const includeDeleted = String(req.query.includeDeleted || "").toLowerCase() === "true";
   const queryFilter = {
     ...filter,
-    isDeleted: { $in: [true, false] } // Include both deleted and non-deleted users
+    ...(includeDeleted ? { isDeleted: { $in: [true, false] } } : { isDeleted: false })
   };
 
   const totalUsers = await User.countDocuments(queryFilter);
