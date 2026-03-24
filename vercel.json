@@ -11,5 +11,11 @@
         "maxDuration": 30,
         "memory": 1024
       }
-    }
+    },
+    "crons": [
+      {
+        "path": "/api/cron/daily-discounts",
+        "schedule": "0 0 * * *"
+      }
+    ]
 }

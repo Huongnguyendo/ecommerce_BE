@@ -140,6 +140,4 @@ app.get("/", (req, res) => {
     res.send("Hello, World!");
 });
 
-// Export both app and connectDB for serverless environments
 module.exports = app;
-module.exports.connectDB = connectDB;
