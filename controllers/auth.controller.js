@@ -52,6 +52,18 @@ authController.loginWithEmail = catchAsync(async (req, res, next) => {
     );
   }
 
+  // Block seller login until approved
+  if (user.role === "Seller" && !user.isApproved) {
+    return sendResponse(
+      res,
+      403,
+      false,
+      { error: "Your seller account is pending approval. Please wait for admin approval." },
+      null,
+      null
+    );
+  }
+
   // after had had user, compare raw password and hash password
   const isMatch = await bcrypt.compare(password, user.password);
   if (!isMatch)
@@ -104,6 +116,18 @@ authController.loginWithFacebookOrGoogle = catchAsync(
           403,
           false,
           { error: "Your account has been deactivated. Please contact an administrator." },
+          null,
+          null
+        );
+      }
+
+      // Block seller login until approved
+      if (user.role === "Seller" && !user.isApproved) {
+        return sendResponse(
+          res,
+          403,
+          false,
+          { error: "Your seller account is pending approval. Please wait for admin approval." },
           null,
           null
         );
