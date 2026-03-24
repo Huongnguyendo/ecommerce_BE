@@ -38,6 +38,10 @@ router.use("/recommendations", recommendationApi);
 const chatbotApi = require("./chatbot.api");
 router.use("/chatbot", chatbotApi);
 
+// cronApi
+const cronApi = require("./cron.api");
+router.use("/cron", cronApi);
+
 // orderApi
 const orderApi = require("./order.api");
 router.use("/orders", orderApi);

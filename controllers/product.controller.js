@@ -11,7 +11,7 @@ const productController = {};
 const tfRecommendation = require("../helpers/tfrecommendation.js");
 const mongoose = require("mongoose");
 const Category = require("../models/category");
-const { getTodaysDeals } = require("../helpers/discount.helper");
+const { getTodaysDeals, setDailyDiscounts } = require("../helpers/discount.helper");
 const { enhanceProductsWithDiscounts } = require("../helpers/product.helper");
 
 
@@ -405,8 +405,12 @@ productController.recommendedProductsHandler = catchAsync(async (req, res, next)
 
 productController.getTodaysDeals = catchAsync(async (req, res, next) => {
   try {
-    const deals = await getTodaysDeals();
-    const enhancedDeals = enhanceProductsWithDiscounts(deals);
+    let deals = await getTodaysDeals();
+    if (!deals || deals.length === 0) {
+      await setDailyDiscounts();
+      deals = await getTodaysDeals();
+    }
+    const enhancedDeals = enhanceProductsWithDiscounts(deals || []);
     
     return sendResponse(res, 200, true, { products: enhancedDeals }, null, "Today's deals retrieved successfully");
   } catch (error) {
